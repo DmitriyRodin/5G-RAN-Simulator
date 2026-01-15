@@ -23,6 +23,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(5G-RAN-Simulator
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        common/types.hpp
+        common/base_entity.hpp
+        common/base_entity.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
