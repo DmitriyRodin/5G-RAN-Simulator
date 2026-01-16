@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -24,8 +24,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         common/types.hpp
+        common/types.cpp
         common/base_entity.hpp
         common/base_entity.cpp
+        gnb/gnb_logic.hpp
+        gnb/gnb_logic.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -45,10 +48,12 @@ else()
     endif()
 endif()
 
-target_link_libraries(5G-RAN-Simulator PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(5G-RAN-Simulator PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt6::Network
+)
 
 target_include_directories(5G-RAN-Simulator PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/common"
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
