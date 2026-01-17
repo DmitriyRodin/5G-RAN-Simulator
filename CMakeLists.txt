@@ -29,6 +29,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         common/base_entity.cpp
         gnb/gnb_logic.hpp
         gnb/gnb_logic.cpp
+        ue/src/ue_logic.hpp
+        ue/src/ue_logic.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

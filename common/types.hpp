@@ -20,9 +20,11 @@ struct UeContext {
 };
 
 enum class MessageType {
+    Sib1,
     AttachRequest,
     AttachAccept,
     MeasurementReport,
+    RRCReconfiguration,
     DataTransfer,
     Unknown
 };
