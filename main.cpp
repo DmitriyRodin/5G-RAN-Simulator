@@ -4,6 +4,7 @@
 
 #include "common/base_entity.hpp"
 #include "gnb/gnb_logic.hpp"
+#include "ue/src/ue_logic.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +13,7 @@ int main(int argc, char *argv[])
 
     GnbLogic bs(1);
     bs.run();
+    UeLogic ue1(1);
 
     w.show();
     return a.exec();
