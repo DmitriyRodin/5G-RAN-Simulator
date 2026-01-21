@@ -1,0 +1,39 @@
+#ifndef UDP_TRANSPORT_H
+#define UDP_TRANSPORT_H
+
+#include <QString>
+#include <QUdpSocket>
+
+struct sendingResult {
+    qint64 bytes_;
+    bool is_socket_error_ = false;
+    QString socket_error_;
+    bool ok() const;
+    QString toString() const;
+};
+
+/**
+ * @brief unique class for asynchronous UDP connection
+ * Used by all nodes: UE, gNB
+ */
+class UdpTransport : public QObject
+{
+    Q_OBJECT
+public:
+    UdpTransport(QObject* parent = nullptr);
+    sendingResult sendData(const QByteArray& data,
+                  const QHostAddress& receiver_ip,
+                  quint16 receiver_port);
+
+signals:
+    void dataReceived(const QByteArray& data,
+                      const QHostAddress& sender_ip,
+                      quint16 sender_port);
+
+private:
+    void readPendingDatagrams();
+
+    QUdpSocket* socket_;
+};
+
+#endif // UDP_TRANSPORT_H

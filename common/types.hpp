@@ -2,12 +2,13 @@
 #define TYPES_HPP
 
 #include <QDateTime>
+#include <QDebug>
 #include <QHostAddress>
 
 enum class EntityType {
     UE,
     GNB,
-    UNKNOWN
+    UNKNOWN = 255
 };
 
 struct UeContext {
@@ -26,8 +27,10 @@ enum class MessageType {
     MeasurementReport,
     RRCReconfiguration,
     DataTransfer,
-    Unknown
+    Unknown = 255
 };
+
+QDebug operator<<(QDebug stream, EntityType type);
 
 MessageType parseMessageType(const QJsonObject& obj);
 

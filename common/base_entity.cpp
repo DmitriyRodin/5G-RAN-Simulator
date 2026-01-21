@@ -7,9 +7,8 @@ BaseEntity::BaseEntity(int id, const EntityType& type, QObject* parrent)
     : id_(id)
     , type_(type)
 {
-    socket_ = new QUdpSocket(this);
-    socket_->bind(QHostAddress::Any, 0);
-    connect(socket_, &QUdpSocket::readyRead, this, &BaseEntity::readPendingDatagrams);
+    transport_ = new UdpTransport(this);
+    connect(transport_, &UdpTransport::dataReceived, this, &BaseEntity::processIncoming);
 }
 
 BaseEntity::~BaseEntity() {
@@ -18,17 +17,27 @@ BaseEntity::~BaseEntity() {
 void BaseEntity::stop() {
 }
 
+EntityType BaseEntity::getType()
+{
+    return type_;
+}
+
 void BaseEntity::setup_network(){
 }
 
-void BaseEntity::send_message(const std::string &payload) {
-}
+void BaseEntity::sendSimData(const QByteArray& data,
+                          const QHostAddress& receiver_ip,
+                          quint16 receiver_port,
+                          int receiver_id)
+{
+    sendingResult result = transport_->sendData(data, receiver_ip, receiver_port);
 
-void BaseEntity::readPendingDatagrams() {
-    while (socket_->hasPendingDatagrams()) {
-        QNetworkDatagram datagram = socket_->receiveDatagram();
-        const QHostAddress sender_ip = datagram.senderAddress();
-        const quint16 sender_port = datagram.senderPort();
-        processIncoming(datagram.data(), sender_ip, sender_port );
+    if (result.is_socket_error_) {
+        qWarning() << type_ << "#" << id_
+                   << " failed to send UDP datagram to node #"
+                   << receiver_id << ":" << result.toString();
+    } else {
+        qDebug() << type_ << "#" << id_
+                 << "sent UDP datagram to node #" << receiver_id;
     }
 }
