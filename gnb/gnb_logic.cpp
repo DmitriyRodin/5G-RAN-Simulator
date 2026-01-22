@@ -143,7 +143,9 @@ void GnbLogic::handleAttachRequest(const QJsonObject& obj)
     response["cell_id"] = id_;
     response["tac"] = 42;
 
-    send_message(ue_id, response);
+    QJsonDocument doc(response);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    sendSimData(data, ctx.ip_address, ctx.port, ue_id);
 }
 
 void GnbLogic::handleMeasurementReport(const QJsonObject &obj)
@@ -189,10 +191,10 @@ void GnbLogic::triggerHandover(int ue_id, int target_Gnb_id) {
     hoCommand["target_gnb_id"] = target_Gnb_id;
     hoCommand["action"] = "HANDOVER";
 
-    send_message(ue_id, hoCommand);
+    sendData(ue_id, hoCommand);
 }
 
-void GnbLogic::send_message(int ue_id, QJsonObject &payload)
+void GnbLogic::sendData(int ue_id, QJsonObject &payload)
 {
     auto it = ue_contexts_.find(ue_id);
 
@@ -203,26 +205,9 @@ void GnbLogic::send_message(int ue_id, QJsonObject &payload)
     }
 
     const UeContext& ctx = it->second;
-
     payload["ue_id"] = ue_id;
-
     QJsonDocument doc(payload);
     QByteArray data = doc.toJson(QJsonDocument::Compact);
 
-    qint64 bytes = socket_->writeDatagram(
-        data,
-        ctx.ip_address,
-        ctx.port
-    );
-
-    if (bytes < 0) {
-        qWarning() << "GNB #" << id_
-                   << " failed to send UDP datagram to UE #"
-                   << ue_id << ":" << socket_->errorString();
-    } else {
-        qDebug() << "GNB #" << id_
-                 << "sents" << bytes
-                 << "bytes to UE #" << ue_id
-                 << ctx.ip_address.toString() << ":" << ctx.port;
-    }
+    sendSimData(data, ctx.ip_address, ctx.port, ue_id);
 }

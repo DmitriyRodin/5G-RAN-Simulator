@@ -53,19 +53,17 @@ void UeLogic::handleSib1(const QJsonObject& obj,
 }
 
 void UeLogic::sendAttachRequest() {
-    QJsonObject req;
-    req["type"] = "ATTACH_REQUEST";
-    req["ue_id"] = id_;
-
-    socket_->writeDatagram(QJsonDocument(req).toJson(),
-                           gNB_ip_, gNB_port_);
+    QJsonObject request;
+    request["type"] = "ATTACH_REQUEST";
+    request["ue_id"] = id_;
     qDebug() << "UE #" << id_ << "sent ATTACH_REQUEST to GNB #"
-             << connected_gNB_id_;
+             << connected_gNB_id_ << ". The result of sending:";
+    sendSimData(QJsonDocument(request).toJson(), gNB_ip_, gNB_port_, id_);
 }
 
 void UeLogic::handleAttachAccept(const QJsonObject& obj) {
     is_attached_ = true;
-    qDebug() << "UE #" << id_ << "successfully ATTACHED to GNB #"
+    qDebug() << "UE #" << id_ << " successfully ATTACHED to GNB #"
              << obj["gnb_id"].toInt();
 }
 
@@ -96,7 +94,7 @@ void UeLogic::sendMeasurementReport() {
     }
 
     report["measurements"] = measurements;
-    socket_->writeDatagram(QJsonDocument(report).toJson(), gNB_ip_, gNB_port_);
+    sendSimData(QJsonDocument(report).toJson(), gNB_ip_, gNB_port_, id_);
 }
 
 void UeLogic::handleRrcReconfiguration(const QJsonObject& obj) {

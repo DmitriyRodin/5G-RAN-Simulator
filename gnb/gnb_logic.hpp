@@ -23,7 +23,7 @@ private:
     void handleAttachRequest(const QJsonObject& obj);
     void handleMeasurementReport(const QJsonObject& obj);
     void triggerHandover(int ue_id, int target_Gnb_id);
-    void send_message(int ue_id, QJsonObject &payload);
+    void sendData(int ue_id, QJsonObject &payload);
 
     QTimer* main_timer_;
     std::chrono::steady_clock::time_point last_broadcast_;

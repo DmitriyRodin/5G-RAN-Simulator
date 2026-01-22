@@ -10,6 +10,7 @@
 #include <string>
 
 #include <common/types.hpp>
+#include <common/udp_transport.hpp>
 
 class BaseEntity: public QObject {
     Q_OBJECT
@@ -19,19 +20,20 @@ public:
 
     void stop();
     virtual void run() = 0;
-
-protected slots:
-    virtual void readPendingDatagrams();
+    EntityType getType();
 
 protected:
     void setup_network();
-    void send_message(const std::string& payload);
+    void sendSimData(const QByteArray& data,
+                  const QHostAddress& receiver_ip,
+                  quint16 receiver_port,
+                  int ue_id);
 
     int id_;
     EntityType type_;
-    QUdpSocket* socket_;
-    QHostAddress hubAddress_;
-    quint16 hubPort_;
+    UdpTransport* transport_;
+    QHostAddress hub_address_;
+    quint16 hub_port_;
 
 private:
     virtual void processIncoming(const QByteArray& data,

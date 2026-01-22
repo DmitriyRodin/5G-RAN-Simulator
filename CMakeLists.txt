@@ -25,6 +25,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         common/types.hpp
         common/types.cpp
+        common/udp_transport.hpp
+        common/udp_transport.cpp
         common/base_entity.hpp
         common/base_entity.cpp
         gnb/gnb_logic.hpp

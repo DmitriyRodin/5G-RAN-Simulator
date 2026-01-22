@@ -16,3 +16,14 @@ MessageType parseMessageType(const QJsonObject& obj)
 
     return MessageType::Unknown;
 }
+
+QDebug operator<<(QDebug stream, EntityType type)
+{
+    switch(type) {
+        case EntityType::GNB:     stream.nospace() << "GNB"; break;
+        case EntityType::UE:      stream.nospace() << "UE"; break;
+        case EntityType::UNKNOWN: stream.nospace() << "Unknown"; break;
+        default:                  stream.nospace() << "ErrorType"; break;
+    }
+    return stream;
+}
