@@ -20,7 +20,7 @@ private:
     void processIncoming(const QByteArray& data, const QHostAddress& sender_ip, quint16 sender_port);
     void sendBroadcastInfo();
     void handleUeData(const QJsonObject& obj);
-    void handleAttachRequest(const QJsonObject& obj);
+    void handleRegistrationRequest(const QJsonObject& obj);
     void handleMeasurementReport(const QJsonObject& obj);
     void triggerHandover(int ue_id, int target_Gnb_id);
     void sendData(int ue_id, QJsonObject &payload);

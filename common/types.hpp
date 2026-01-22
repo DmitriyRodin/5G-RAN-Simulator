@@ -20,18 +20,51 @@ struct UeContext {
     quint16 port;
 };
 
-enum class MessageType {
-    Sib1,
-    AttachRequest,
-    AttachAccept,
+// MessageType from gNb to UE and from UE to gNB
+
+enum class MessageType : uint8_t {
+    // Broadcast
+    Sib1 = 0,
+
+    // Initial Access
+    RachPreamble,
+    Rar,
+
+    //Mobility & Connection Management
+    RegistrationRequest,
+    RegistrationAccept,
+    DeregistrationRequest,
+    ServiceRequest,
+    Paging,
+
+    // Handover (Xn/N2 Mobility)
     MeasurementReport,
-    RRCReconfiguration,
-    DataTransfer,
+    RrcReconfiguration,
+    RrcReconfigurationComplete,
+
+    // User Plane
+    UserPlaneData,
+
     Unknown = 255
 };
 
+MessageType parseMessageType(const QJsonObject& obj);
+
 QDebug operator<<(QDebug stream, EntityType type);
 
-MessageType parseMessageType(const QJsonObject& obj);
+// header and message type from gNb and UE to RaioHub ( UE and gNB connection simulation )
+
+enum class SimMessageType : uint8_t {
+    Registration = 0,
+    Deregistration,
+    Data,
+    Unknown = 255
+};
+
+struct SimHeader {
+    uint32_t source_id;
+    uint32_t target_id; // 0xFFFFFFFF for Broadcast
+    SimMessageType type;
+};
 
 #endif // TYPES_HPP

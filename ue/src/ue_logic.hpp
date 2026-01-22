@@ -27,10 +27,10 @@ private:
     void handleSib1(const QJsonObject& obj,
                     const QHostAddress& gnb_ip,
                     quint16 gnb_port);
-    void handleAttachAccept(const QJsonObject& obj);
+    void handleRegistrationAccept(const QJsonObject& obj);
     void handleRrcReconfiguration(const QJsonObject& obj);
 
-    void sendAttachRequest();
+    void sendRegistrationRequest();
     void sendMeasurementReport();
 
     int connected_gNB_id_ = -1;

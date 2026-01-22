@@ -8,7 +8,6 @@ BaseEntity::BaseEntity(int id, const EntityType& type, QObject* parrent)
     , type_(type)
 {
     transport_ = new UdpTransport(this);
-    connect(transport_, &UdpTransport::dataReceived, this, &BaseEntity::processIncoming);
 }
 
 BaseEntity::~BaseEntity() {
@@ -22,7 +21,9 @@ EntityType BaseEntity::getType()
     return type_;
 }
 
-void BaseEntity::setup_network(){
+void BaseEntity::setup_network() {
+    transport_->init(0);
+    connect(transport_, &UdpTransport::dataReceived, this, &BaseEntity::processIncoming);
 }
 
 void BaseEntity::sendSimData(const QByteArray& data,
