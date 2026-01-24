@@ -7,8 +7,6 @@
 #include <QJsonObject>
 #include <QUdpSocket>
 
-#include <string>
-
 #include <common/types.hpp>
 #include <common/udp_transport.hpp>
 

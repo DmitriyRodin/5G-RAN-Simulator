@@ -16,9 +16,6 @@ QString sendingResult::sendingResult::toString() const {
 UdpTransport::UdpTransport(QObject* parent)
     : QObject(parent)
 {
-    socket_ = new QUdpSocket(this);
-    socket_->bind(QHostAddress::Any, 0);
-    connect(socket_, &QUdpSocket::readyRead, this, &UdpTransport::readPendingDatagrams);
 }
 
 sendingResult UdpTransport::sendData(const QByteArray& data,
@@ -40,12 +37,29 @@ sendingResult UdpTransport::sendData(const QByteArray& data,
     return sending_result;
 }
 
+bool UdpTransport::init(quint16 listen_port)
+{
+    if (!socket_) {
+        socket_ = new QUdpSocket(this);
+    }
+
+    if (socket_->bind(QHostAddress::Any, listen_port)) {
+        connect(socket_, &QUdpSocket::readyRead, this, &UdpTransport::readPendingDatagrams);
+        qDebug() << "UdpTransport: successfully listening on port" << socket_->localPort();
+        return true;
+    } else {
+        qWarning() << "UdpTransport: failed to bind to port" << listen_port
+                   << "Error:" << socket_->errorString();
+        return false;
+    }
+}
+
 void UdpTransport::readPendingDatagrams()
 {
     while (socket_->hasPendingDatagrams()) {
         QNetworkDatagram datagram = socket_->receiveDatagram();
         const QHostAddress sender_ip = datagram.senderAddress();
-        const quint16 sender_port = datagram.senderPort();
+        const quint16 sender_port = datagram.senderPort();        
         emit dataReceived(datagram.data(), sender_ip, sender_port );
     }
 }

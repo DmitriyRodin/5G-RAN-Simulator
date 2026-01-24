@@ -25,6 +25,8 @@ public:
                   const QHostAddress& receiver_ip,
                   quint16 receiver_port);
 
+    bool init(quint16 listen_port);
+
 signals:
     void dataReceived(const QByteArray& data,
                       const QHostAddress& sender_ip,

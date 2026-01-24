@@ -50,7 +50,7 @@ void GnbLogic::processIncoming(const QByteArray& data,
     auto it = ue_contexts_.find(ue_id);
 
     if (it == ue_contexts_.end()) {
-        if (msg_type != MessageType::AttachRequest) {
+        if (msg_type != MessageType::RegistrationRequest) {
             qWarning() << "GNB #" << id_
                        << "ignores the message from unknown UE #" << ue_id << "because this UE isn't attached";
             return;
@@ -70,7 +70,7 @@ void GnbLogic::processIncoming(const QByteArray& data,
                  << " attached new UE # " << ue_id
                  << sender_ip.toString() << sender_port;
 
-        handleAttachRequest(obj);
+        handleRegistrationRequest(obj);
         return;
     }
 
@@ -88,13 +88,13 @@ void GnbLogic::processIncoming(const QByteArray& data,
 
         handleMeasurementReport(obj);
     }
-    else if (msg_type == MessageType::DataTransfer) {
+    else if (msg_type == MessageType::UserPlaneData) {
         ctx.last_activity = now;
         handleUeData(obj);
     }
-    else if (msg_type == MessageType::AttachRequest) {
+    else if (msg_type == MessageType::RegistrationRequest) {
         ctx.last_activity = now;
-        handleAttachRequest(obj);
+        handleRegistrationRequest(obj);
     }
     else {
         qDebug() << "GNB #" << id_ << " unknown message type";
@@ -117,20 +117,20 @@ void GnbLogic::handleUeData(const QJsonObject &obj)
     // HANDLE UE data logic
 }
 
-void GnbLogic::handleAttachRequest(const QJsonObject& obj)
+void GnbLogic::handleRegistrationRequest(const QJsonObject& obj)
 {
     const int ue_id = obj["ue_id"].toInt();
 
     auto it = ue_contexts_.find(ue_id);
     if (it == ue_contexts_.end()) {
-        qWarning() << "handleAttachRequest called for unknown UE #" << ue_id;
+        qWarning() << "handleRegistrationRequest called for unknown UE #" << ue_id;
         return;
     }
 
     UeContext& ctx = it->second;
 
     qDebug() << "GNB #" << id_
-             << " is processing ATTACH REQUEST from UE #" << ue_id;
+             << " is processing REGISTRATION REQUEST from UE #" << ue_id;
 
     // RRC logic
 
@@ -138,7 +138,7 @@ void GnbLogic::handleAttachRequest(const QJsonObject& obj)
     ctx.last_activity = QDateTime::currentDateTime();
 
     QJsonObject response;
-    response["type"] = "ATTACH_ACCEPT";
+    response["type"] = "REGISTRATION_ACCEPT";
     response["ue_id"] = ue_id;
     response["cell_id"] = id_;
     response["tac"] = 42;

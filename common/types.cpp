@@ -7,12 +7,21 @@ MessageType parseMessageType(const QJsonObject& obj)
 {
     const QString type = obj["type"].toString();
 
-    if (type == "SIB1")                return MessageType::Sib1;
-    if (type == "ATTACH_REQUEST")      return MessageType::AttachRequest;
-    if (type == "ATTACH_ACCEPT")       return MessageType::AttachAccept;
-    if (type == "MEASUREMENT_REPORT")  return MessageType::MeasurementReport;
-    if (type == "RRC_RECONFIGURATION") return MessageType::RRCReconfiguration;
-    if (type == "DATA_TRANSFER")       return MessageType::DataTransfer;    
+    if (type == "UAER_PLANE_DATA")                return MessageType::UserPlaneData;
+
+    if (type == "MEASUREMENT_REPORT")             return MessageType::MeasurementReport;
+    if (type == "RRC_RECONFIGURATION")            return MessageType::RrcReconfiguration;
+    if (type == "RRC_RECONFIGURATION_COMPLETE")   return MessageType::RrcReconfigurationComplete;
+
+    if (type == "SIB1")                           return MessageType::Sib1;
+    if (type == "RACH_PREAMBLE")                  return MessageType::RachPreamble;
+    if (type == "RAR")                            return MessageType::Rar;
+
+    if (type == "REGISTRATION_REQUEST")           return MessageType::RegistrationRequest;
+    if (type == "REGISTRATION_ACCEPT")            return MessageType::RegistrationAccept;
+    if (type == "DEREGISTRATION_REQUEST")         return MessageType::DeregistrationRequest;
+    if (type == "SERVICE_REQUEST")                return MessageType::ServiceRequest;
+    if (type == "PAGING")                         return MessageType::Paging;
 
     return MessageType::Unknown;
 }

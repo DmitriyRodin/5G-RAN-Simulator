@@ -30,8 +30,8 @@ void UeLogic::processIncoming(const QByteArray& data,
 
     if (type == "SIB1") {
         handleSib1(obj, sender_ip, sender_port);
-    } else if (type == "ATTACH_ACCEPT") {
-        handleAttachAccept(obj);
+    } else if (type == "REGISTRATION_ACCEPT") {
+        handleRegistrationAccept(obj);
     } else if (type == "RRC_RECONFIGURATION") {
         handleRrcReconfiguration(obj);
     }
@@ -48,22 +48,22 @@ void UeLogic::handleSib1(const QJsonObject& obj,
         connected_gNB_id_ = gnb_id;
         gNB_ip_ = gnb_ip;
         gNB_port_ = gnb_port;
-        sendAttachRequest();
+        sendRegistrationRequest();
     }
 }
 
-void UeLogic::sendAttachRequest() {
+void UeLogic::sendRegistrationRequest() {
     QJsonObject request;
-    request["type"] = "ATTACH_REQUEST";
+    request["type"] = "REGISTRATION_REQUEST";
     request["ue_id"] = id_;
-    qDebug() << "UE #" << id_ << "sent ATTACH_REQUEST to GNB #"
+    qDebug() << "UE #" << id_ << "sent REGISTRATION_REQUEST to GNB #"
              << connected_gNB_id_ << ". The result of sending:";
     sendSimData(QJsonDocument(request).toJson(), gNB_ip_, gNB_port_, id_);
 }
 
-void UeLogic::handleAttachAccept(const QJsonObject& obj) {
+void UeLogic::handleRegistrationAccept(const QJsonObject& obj) {
     is_attached_ = true;
-    qDebug() << "UE #" << id_ << " successfully ATTACHED to GNB #"
+    qDebug() << "UE #" << id_ << " successfully REGISTRED to GNB #"
              << obj["gnb_id"].toInt();
 }
 
