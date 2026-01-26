@@ -11,6 +11,8 @@ enum class EntityType {
     UNKNOWN = 255
 };
 
+QString typeToString(EntityType type);
+
 struct UeContext {
     int id;
     double last_rssi;
@@ -20,15 +22,37 @@ struct UeContext {
     quint16 port;
 };
 
-// MessageType from gNb to UE and from UE to gNB
+namespace NetConfig {
+    const uint32_t HUB_ID = 0;
+    const uint32_t BROADCAST_ID = 0xFFFFFFFF;
+}
 
-enum class MessageType : uint8_t {
+enum class UeRrcState : uint8_t {
+    // Simulation:
+    DETACHED = 0,
+    SEARCHING_FOR_CELL = 1,
+
+    // 5G states (3GPP TS 38.331)
+    RRC_IDLE = 2,
+    RRC_CONNECTING = 3,
+    RRC_CONNECTED = 4,
+    RRC_INACTIVE = 5
+};
+
+// ProtocolMsgType from gNb to UE and from UE to gNB
+
+enum class ProtocolMsgType : uint8_t {
     // Broadcast
     Sib1 = 0,
 
-    // Initial Access
+    // RACH: Initial Access
     RachPreamble,
     Rar,
+
+    RrcSetup,
+    RrcSetupRequest,
+    RrcSetupComplete,
+    RrcRelease,
 
     //Mobility & Connection Management
     RegistrationRequest,
@@ -37,7 +61,7 @@ enum class MessageType : uint8_t {
     ServiceRequest,
     Paging,
 
-    // Handover (Xn/N2 Mobility)
+    // Xn/N2 Mobility: Handover
     MeasurementReport,
     RrcReconfiguration,
     RrcReconfigurationComplete,
@@ -48,7 +72,11 @@ enum class MessageType : uint8_t {
     Unknown = 255
 };
 
-MessageType parseMessageType(const QJsonObject& obj);
+enum class RegistrationStatus : uint8_t {
+    Rejected = 0,
+    Accepted = 1,
+    Pending = 2
+};
 
 QDebug operator<<(QDebug stream, EntityType type);
 
@@ -56,6 +84,7 @@ QDebug operator<<(QDebug stream, EntityType type);
 
 enum class SimMessageType : uint8_t {
     Registration = 0,
+    RegistrationResponse,
     Deregistration,
     Data,
     Unknown = 255
@@ -63,7 +92,7 @@ enum class SimMessageType : uint8_t {
 
 struct SimHeader {
     uint32_t source_id;
-    uint32_t target_id; // 0xFFFFFFFF for Broadcast
+    uint32_t target_id; // NetConfig::BROADCAST_ID = 0xFFFFFFFF
     SimMessageType type;
 };
 

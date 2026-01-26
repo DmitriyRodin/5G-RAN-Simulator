@@ -26,6 +26,7 @@ public:
                   quint16 receiver_port);
 
     bool init(quint16 listen_port);
+    quint16 localPort() const;
 
 signals:
     void dataReceived(const QByteArray& data,
@@ -35,7 +36,7 @@ signals:
 private:
     void readPendingDatagrams();
 
-    QUdpSocket* socket_;
+    QUdpSocket* socket_= nullptr;
 };
 
 #endif // UDP_TRANSPORT_H

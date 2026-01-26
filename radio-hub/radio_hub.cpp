@@ -84,7 +84,7 @@ void RadioHub::handleDataRouting(uint32_t src_id,
 
     const NodeInfo &src = nodes_[src_id];
 
-    if (target_id == 0xFFFFFFFF) {
+    if (target_id == NetConfig::BROADCAST_ID) {
         for (const NodeInfo &dst : nodes_.values()) {
             if (dst.id != src_id) {
                 deliverPacket(src, dst, payload);

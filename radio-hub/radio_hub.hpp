@@ -43,7 +43,7 @@ private:
                        const NodeInfo &dst,
                        const QByteArray &payload);
 
-    UdpTransport* transport_;
+    UdpTransport* transport_ = nullptr;
     QMap<uint32_t, NodeInfo> nodes_;
 };
 
