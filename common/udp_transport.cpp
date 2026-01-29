@@ -63,3 +63,9 @@ void UdpTransport::readPendingDatagrams()
         emit dataReceived(datagram.data(), sender_ip, sender_port );
     }
 }
+
+quint16 UdpTransport::localPort() const
+{
+    return socket_ ? socket_->localPort() : 0;
+}
+

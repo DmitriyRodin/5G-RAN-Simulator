@@ -11,43 +11,45 @@
 class UeLogic : public BaseEntity {
     Q_OBJECT
 public:
-    explicit UeLogic(int id, QObject *parent = nullptr);
+    explicit UeLogic(uint32_t id, QObject *parent = nullptr);
 
     void run() override;
+    void sendChatMessage(uint32_t target_ue_id, const QString& text);
 
 protected:
-    void processIncoming(const QByteArray& data,
-                         const QHostAddress& sender_ip,
-                         quint16 sender_port) override;
+   void onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type, const QByteArray &payload) override;
+   void searchingForCell();
 
 private slots:
     void onTick();
 
 private:
-    void handleSib1(const QJsonObject& obj,
-                    const QHostAddress& gnb_ip,
-                    quint16 gnb_port);
-    void handleRegistrationAccept(const QJsonObject& obj);
-    void handleRrcReconfiguration(const QJsonObject& obj);
+    void handleSib1(uint32_t gnb_id, const QByteArray &payload);
+
+    void handleRegistrationAccept(const QByteArray& payload);
+    void handleRrcReconfiguration(const QByteArray& payload);
+
+    void sendRrcSetupRequest(uint32_t gnb_id);
+    void handleRrcRelease(uint32_t gnb_id);
+    void handleRrcSetup(uint32_t gnb_id, const QByteArray &payload);
 
     void sendRegistrationRequest();
     void sendMeasurementReport();
 
-    int connected_gNB_id_ = -1;
     bool is_attached_ = false;
 
-    QHostAddress gNB_ip_;
-    quint16 gNB_port_ = 0;
+    UeRrcState state_;
+    uint32_t target_gnb_id_;
+    /* Cell Radio Network Temporary Identifier (C-RNTI).
+     * 3GPP TS 38.321 — MAC protocol specification: page 146
+    */
+    uint16_t crnti_;
 
-    QTimer* timer_;
+    QTimer* timer_ = nullptr;
     std::chrono::steady_clock::time_point last_report_time_;
     const std::chrono::milliseconds report_interval_{500};
 
-    struct KnownGnb {
-        QHostAddress ip_;
-        quint16 port_;
-    };
-    QHash<int, KnownGnb> known_gNBs_;
+    QList<uint32_t> peers_;
 };
 
 #endif // UE_LOGIC_HPP

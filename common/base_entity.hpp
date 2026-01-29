@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUdpSocket>
+#include <QPoint>
 
 #include <common/types.hpp>
 #include <common/udp_transport.hpp>
@@ -13,30 +14,50 @@
 class BaseEntity: public QObject {
     Q_OBJECT
 public:
-    BaseEntity(int id, const EntityType& type, QObject* parent = nullptr);
+    BaseEntity(uint32_t id, const EntityType& type, QObject* parent = nullptr);
     virtual ~BaseEntity();
 
     void stop();
     virtual void run() = 0;
+    bool setupNetwork(quint16 port);
+    void registerAtHub(const QHostAddress& hub_address, quint16 hub_port);
+    void handleRegistrationResponse(QDataStream &ds);
+
     EntityType getType();
+    quint16 localPort() const;
+
+    void setPosition(QPointF pos);
+    QPointF position() const;
+    void setTxPower(double power);
+    double txPower() const;
+
+signals:
+    void registrationConfirmed();
 
 protected:
-    void setup_network();
-    void sendSimData(const QByteArray& data,
-                  const QHostAddress& receiver_ip,
-                  quint16 receiver_port,
-                  int ue_id);
+    void sendSimData(ProtocolMsgType protoType,
+                     const QByteArray& payload,
+                     uint32_t targetId);
 
-    int id_;
+    uint32_t id_;
     EntityType type_;
-    UdpTransport* transport_;
+
+    UdpTransport* transport_ = nullptr;
+
     QHostAddress hub_address_;
     quint16 hub_port_;
 
-private:
-    virtual void processIncoming(const QByteArray& data,
-                         const QHostAddress& sender_ip,
-                         quint16 sender_port) = 0;
+    bool is_registered_;
+    QPointF position_;
+    double tx_power_dbm_;
+
+    virtual void onProtocolMessageReceived(uint32_t source_id,
+                                          ProtocolMsgType type,
+                                          const QByteArray &payload) = 0;
+
+private slots:
+    void handleIncomingRawData(const QByteArray &data, const QHostAddress &addr, quint16 port);
+
 };
 
 #endif // BASE_ENTITY_HPP

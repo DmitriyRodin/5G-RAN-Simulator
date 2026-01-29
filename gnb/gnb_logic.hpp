@@ -17,15 +17,14 @@ private slots:
     void onTick();
 
 private:
-    void processIncoming(const QByteArray& data, const QHostAddress& sender_ip, quint16 sender_port);
+    void onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type, const QByteArray &payload);
     void sendBroadcastInfo();
-    void handleUeData(const QJsonObject& obj);
-    void handleRegistrationRequest(const QJsonObject& obj);
-    void handleMeasurementReport(const QJsonObject& obj);
+    void handleUeData(uint32_t ue_id, const QByteArray& payload);
+    void handleRegistrationRequest(uint32_t ue_id, const QByteArray& payload);
+    void handleMeasurementReport(const QJsonObject &obj);
     void triggerHandover(int ue_id, int target_Gnb_id);
-    void sendData(int ue_id, QJsonObject &payload);
 
-    QTimer* main_timer_;
+    QTimer* main_timer_ = nullptr;
     std::chrono::steady_clock::time_point last_broadcast_;
     const std::chrono::milliseconds broadcast_interval_{200};
     std::unordered_map<uint, UeContext> ue_contexts_;
