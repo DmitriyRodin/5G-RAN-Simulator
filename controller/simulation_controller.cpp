@@ -27,8 +27,9 @@ void SimulationController::setupGnbStations()
         gnb->setPosition(gnbPositions[i]);
         gnb->setTxPower(43.0);
 
-        if (gnb->setupNetwork(0)) {
+        if (gnb->setupNetwork(0)) {            
             gnb->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
+            gnb->run();
             gnbs_.append(gnb);
         }
     }

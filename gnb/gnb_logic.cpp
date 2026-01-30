@@ -1,6 +1,7 @@
 #include <QDebug>
 
 #include "gnb_logic.hpp"
+#include "common/logging/flow_logger.hpp"
 
 GnbLogic::GnbLogic(int id, QObject* parent )
     : BaseEntity(id, EntityType::GNB, parent)
@@ -50,8 +51,7 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type, c
 void GnbLogic::sendBroadcastInfo()
 {
     // SEND SIB info
-
-    qDebug() << "GNB #" << id_ << " sents SIB1 broadcast";
+    FlowLogger::log(type_, id_, NetConfig::BROADCAST_ID, ProtocolMsgType::Sib1, false);
 }
 
 void GnbLogic::handleUeData(uint32_t ue_id, const QByteArray& payload)

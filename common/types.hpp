@@ -49,12 +49,13 @@ enum class ProtocolMsgType : uint8_t {
     RachPreamble,
     Rar,
 
+    // RRC Connection
     RrcSetup,
     RrcSetupRequest,
     RrcSetupComplete,
     RrcRelease,
 
-    //Mobility & Connection Management
+    // NAS: Mobility & Connection Management
     RegistrationRequest,
     RegistrationAccept,
     DeregistrationRequest,
@@ -92,7 +93,7 @@ enum class SimMessageType : uint8_t {
 
 struct SimHeader {
     uint32_t source_id;
-    uint32_t target_id; // NetConfig::BROADCAST_ID = 0xFFFFFFFF
+    uint32_t target_id;
     SimMessageType type;
 };
 

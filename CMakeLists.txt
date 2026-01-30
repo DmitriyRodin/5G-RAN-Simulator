@@ -37,6 +37,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         radio-hub/radio_hub.cpp
         controller/simulation_controller.hpp
         controller/simulation_controller.cpp
+        common/logging/flow_logger.hpp
+        common/logging/flow_logger.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

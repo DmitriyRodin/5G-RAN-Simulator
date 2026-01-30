@@ -2,9 +2,6 @@
 
 #include <QApplication>
 
-#include "common/base_entity.hpp"
-#include "gnb/gnb_logic.hpp"
-#include "ue/src/ue_logic.hpp"
 #include <controller/simulation_controller.hpp>
 
 int main(int argc, char *argv[])
