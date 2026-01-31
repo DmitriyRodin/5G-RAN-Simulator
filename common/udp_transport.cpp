@@ -43,6 +43,8 @@ bool UdpTransport::init(quint16 listen_port)
         socket_ = new QUdpSocket(this);
     }
 
+    qRegisterMetaType<QHostAddress>("QHostAddress");
+
     if (socket_->bind(QHostAddress::Any, listen_port)) {
         connect(socket_, &QUdpSocket::readyRead, this, &UdpTransport::readPendingDatagrams);
         qDebug() << "UdpTransport: successfully listening on port" << socket_->localPort();
@@ -59,7 +61,8 @@ void UdpTransport::readPendingDatagrams()
     while (socket_->hasPendingDatagrams()) {
         QNetworkDatagram datagram = socket_->receiveDatagram();
         const QHostAddress sender_ip = datagram.senderAddress();
-        const quint16 sender_port = datagram.senderPort();        
+        const quint16 sender_port = datagram.senderPort();
+
         emit dataReceived(datagram.data(), sender_ip, sender_port );
     }
 }

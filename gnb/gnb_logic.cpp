@@ -1,20 +1,27 @@
 #include <QDebug>
+#include <QRandomGenerator>
 
 #include "gnb_logic.hpp"
 #include "common/logging/flow_logger.hpp"
 
-GnbLogic::GnbLogic(int id, QObject* parent )
+GnbLogic::GnbLogic(uint32_t id, QObject* parent )
     : BaseEntity(id, EntityType::GNB, parent)
 {
     main_timer_ = new QTimer(this);
+    main_timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
     connect(main_timer_, &QTimer::timeout, this, &GnbLogic::onTick);
     last_broadcast_ = std::chrono::steady_clock::now();
-    connect(this, &BaseEntity::registrationConfirmed, this,&GnbLogic::sendBroadcastInfo);
+    connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,&GnbLogic::sendBroadcastInfo);
+}
+
+void GnbLogic::setCellConfig(const GnbCellConfig& config)
+{
+    cellConfig_ = config;
 }
 
 void GnbLogic::run() {
-    qDebug() << "GNB #" << id_ << "is running";
-    main_timer_->start(20);
+    qDebug() << "GNB #" << id_ << " timer starts";
+    main_timer_->start();
 }
 
 void GnbLogic::onTick() {
@@ -26,7 +33,9 @@ void GnbLogic::onTick() {
     }
 }
 
-void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type, const QByteArray &payload)
+void GnbLogic::onProtocolMessageReceived(uint32_t ue_id,
+                                         ProtocolMsgType type,
+                                         const QByteArray &payload)
 {
     // UPDATE UeContext data
 
@@ -44,13 +53,25 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type, c
             break;
         // ...
         default:
-            qDebug() << "[gNB] Unhandled protocol type:" << static_cast<int>(type);
+            qDebug() << "[gNB] Unhandled protocol type:"
+                     << static_cast<int>(type);
     }
 }
 
 void GnbLogic::sendBroadcastInfo()
 {
-    // SEND SIB info
+    qDebug() << "sendBroadcastInfo";
+    QByteArray broadcast_info;
+    QDataStream ds(&broadcast_info, QIODevice::WriteOnly);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    ds << static_cast<uint32_t>(id_);
+    ds << static_cast<uint16_t>(cellConfig_.tac);
+    ds << static_cast<int16_t>(cellConfig_.minRxLevel);
+    ds << static_cast<int16_t>(cellConfig_.mcc);
+    ds << static_cast<int16_t>(cellConfig_.mnc);
+
+    sendSimData(ProtocolMsgType::Sib1, broadcast_info, NetConfig::BROADCAST_ID);
     FlowLogger::log(type_, id_, NetConfig::BROADCAST_ID, ProtocolMsgType::Sib1, false);
 }
 
@@ -91,7 +112,8 @@ void GnbLogic::handleMeasurementReport(const QJsonObject &obj)
     int ue_id = obj["ue_id"].toInt();
     QJsonArray measurements = obj["measurements"].toArray();
 
-    qDebug() << "GNB #" << id_ << " RRC info: Received Measurement Report from UE #" << ue_id;
+    qDebug() << "GNB #" << id_ << " RRC info: Received Measurement Report from UE #"
+             << ue_id;
 
     int best_target_Gnb_id = -1;
     double best_rssi = -1000.0;
@@ -128,4 +150,27 @@ void GnbLogic::triggerHandover(int ue_id, int target_Gnb_id) {
 
     ds << static_cast<uint32_t>(target_Gnb_id);
     sendSimData(ProtocolMsgType::RrcReconfiguration, payload, ue_id);
+}
+
+void GnbLogic::handleRrcSetupRequest(uint32_t ueId,
+                                     const QByteArray& payload,
+                                     const QHostAddress &senderIp,
+                                     quint16 senderPort) {
+    QDataStream in(payload);
+    uint8_t establishmentCause;
+    in >> establishmentCause;
+
+    uint16_t newCrnti = static_cast<uint16_t>(QRandomGenerator::global()->bounded(1, 65000));
+
+    ue_contexts_[ueId] = UeContext(ueId, newCrnti, senderIp, senderPort);
+
+    qDebug() << "[gNB" << id_ << "] Created context for UE" << ueId
+             << "with C-RNTI:" << newCrnti;
+
+    QByteArray response;
+    QDataStream out(&response, QIODevice::WriteOnly);
+    out << newCrnti;
+    out << static_cast<uint32_t>(id_);
+
+    sendSimData(ProtocolMsgType::RrcSetup, response, ueId);
 }

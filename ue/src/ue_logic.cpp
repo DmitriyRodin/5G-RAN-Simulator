@@ -15,25 +15,33 @@ UeLogic::UeLogic(uint32_t id, QObject *parent)
 {
     qDebug() << "[UE #" << id_ << "] Created. Initial State: DETACHED";
     timer_ = new QTimer(this);
+    timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
+
     connect(timer_, &QTimer::timeout, this, &UeLogic::onTick);
     last_report_time_ = std::chrono::steady_clock::now();
-    connect(this, &BaseEntity::registrationConfirmed, this, &UeLogic::searchingForCell);
+    connect(this, &BaseEntity::registrationAtRadioHubConfirmed,
+            this, &UeLogic::searchingForCell);
 }
 
 void UeLogic::run() {
     qDebug() << "UE #" << id_ << " started";
-    timer_->start(50);
+    timer_->start();
 }
 
 void UeLogic::searchingForCell() {
     state_ = UeRrcState::SEARCHING_FOR_CELL;
+
+    target_gnb_id_ = 0;
     qDebug() << "[UE #" << id_ << "] Registered in Hub. State: SEARCHING_FOR_CELL";
 }
 
-void UeLogic::onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type, const QByteArray &payload)
+void UeLogic::onProtocolMessageReceived(uint32_t gnb_id,
+                                        ProtocolMsgType type,
+                                        const QByteArray &payload)
 {
     switch (type) {
         case ProtocolMsgType::Sib1:
+        qDebug() << "UE#" << id_ << "ProtocolMsgType::Sib1";
             handleSib1(gnb_id, payload);
             break;
 
@@ -76,7 +84,7 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray &payload) {
 
     qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
 
-    // CHECK signal level (RSRP)
+    // Maybe: CHECK signal level (RSRP)
     state_ = UeRrcState::RRC_IDLE;
     target_gnb_id_ = gnb_id;
 
@@ -92,7 +100,6 @@ void UeLogic::sendRrcSetupRequest(uint32_t gnb_id) {
 
     ds << static_cast<uint8_t>(0x01); // Cause: mo-Signalling
 
-    qDebug() << "[UE #" << id_ << "] Sending RrcSetupRequest to gNB #" << gnb_id;
     sendSimData(ProtocolMsgType::RrcSetupRequest, requestData, gnb_id);
 }
 
@@ -107,7 +114,8 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray &payload) {
     ds >> crnti_;
 
     state_ = UeRrcState::RRC_CONNECTED;
-    qDebug() << "[UE #" << id_ << "] Connected to gNB" << gnb_id << ". C-RNTI:" << crnti_;
+    qDebug() << "[UE #" << id_ << "] Connected to gNB"
+             << gnb_id << ". C-RNTI:" << crnti_;
 
     sendSimData(ProtocolMsgType::RrcSetupComplete, QByteArray(), gnb_id);
 }
@@ -117,7 +125,8 @@ void UeLogic::handleRrcRelease(uint32_t gnb_id) {
         return;
     }
 
-    qDebug() << "[UE #" << id_ << "] RRC Release received. Moving back to IDLE/SEARCHING...";
+    qDebug() << "[UE #" << id_ << "] RRC Release received. "
+                                  "Moving back to IDLE/SEARCHING...";
     state_ = UeRrcState::RRC_IDLE;
     crnti_ = 0;
 }
@@ -133,7 +142,8 @@ void UeLogic::sendRegistrationRequest() {
 
     ds << QString("UE-Capabilities-Model-X") << static_cast<uint16_t>(id_);
 
-    qDebug() << "[UE #" << id_ << "] Sending NAS Registration Request via gNB" << target_gnb_id_;
+    qDebug() << "[UE #" << id_ << "] Sending NAS Registration Request via gNB"
+             << target_gnb_id_;
     sendSimData(ProtocolMsgType::RegistrationRequest, nasData, target_gnb_id_);
 }
 
@@ -144,12 +154,35 @@ void UeLogic::handleRegistrationAccept(const QByteArray& payload) {
     QString message;
     ds >> message;
 
-    qDebug() << "[UE #" << id_ << "] NAS Registration Accepted! Network says:" << message;
+    qDebug() << "[UE #" << id_ << "] NAS Registration Accepted! Network says:"
+             << message;
 }
 
 void UeLogic::onTick() {
+    if (state_ == UeRrcState::IDLE || state_ == UeRrcState::DETACHED) {
+        return;
+    }
+
+    switch (state_) {
+        case UeRrcState::DETACHED:
+        case UeRrcState::RRC_IDLE:
+        case UeRrcState::RRC_INACTIVE:
+            // ...
+            return;
+
+        case UeRrcState::SEARCHING_FOR_CELL:
+                // ...
+                return;
+
+            case UeRrcState::RRC_CONNECTED:
+                // ...
+                break;
+
+            case UeRrcState::RRC_CONNECTING:
+                return;
+        }
     auto now = std::chrono::steady_clock::now();
-    if (is_attached_ && (now - last_report_time_ >= report_interval_)) {
+    if (now - last_report_time_ >= report_interval_) {
         sendMeasurementReport();
         last_report_time_ = now;
     }
@@ -167,7 +200,8 @@ void UeLogic::sendMeasurementReport() {
     double rsrp = -90.0 + QRandomGenerator::global()->bounded(10);
     ds << target_gnb_id_ << rsrp;
 
-    qDebug() << "[UE #" << id_ << "] Sending Measurement Report. RSRP:" << rsrp << "dBm";
+    qDebug() << "[UE #" << id_ << "] Sending Measurement Report. RSRP:"
+             << rsrp << "dBm";
     sendSimData(ProtocolMsgType::MeasurementReport, report, target_gnb_id_);
 }
 
@@ -178,7 +212,8 @@ void UeLogic::handleRrcReconfiguration(const QByteArray& payload) {
     uint32_t new_gnb_id;
     ds >> new_gnb_id;
 
-    qDebug() << "[UE #" << id_ << "] RRC Reconfiguration: Handover command to gNB #" << new_gnb_id;
+    qDebug() << "[UE #" << id_ << "] RRC Reconfiguration: Handover command to gNB #"
+             << new_gnb_id;
 
     target_gnb_id_ = new_gnb_id;
 }
@@ -194,7 +229,8 @@ void UeLogic::sendChatMessage(uint32_t target_ue_id, const QString& text) {
     ds.setByteOrder(QDataStream::BigEndian);
 
     ds << target_ue_id << text;
-    qDebug() << "[UE #" << id_ << "] Sending text message to UE #" << target_ue_id << ":" << text;
+    qDebug() << "[UE #" << id_ << "] Sending text message to UE #"
+             << target_ue_id << ":" << text;
 
     sendSimData(ProtocolMsgType::UserPlaneData, data, target_gnb_id_);
 }

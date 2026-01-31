@@ -32,7 +32,7 @@ public:
     double txPower() const;
 
 signals:
-    void registrationConfirmed();
+    void registrationAtRadioHubConfirmed();
 
 protected:
     void sendSimData(ProtocolMsgType protoType,
@@ -55,9 +55,10 @@ protected:
                                           ProtocolMsgType type,
                                           const QByteArray &payload) = 0;
 
-private slots:
-    void handleIncomingRawData(const QByteArray &data, const QHostAddress &addr, quint16 port);
-
+public slots:
+    void handleIncomingRawData(const QByteArray& data,
+                               const QHostAddress& addr,
+                               quint16 port);
 };
 
 #endif // BASE_ENTITY_HPP

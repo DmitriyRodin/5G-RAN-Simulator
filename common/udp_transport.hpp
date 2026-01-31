@@ -30,8 +30,8 @@ public:
 
 signals:
     void dataReceived(const QByteArray& data,
-                      const QHostAddress& sender_ip,
-                      quint16 sender_port);
+                      const QHostAddress& addr,
+                      quint16 port);
 
 private:
     void readPendingDatagrams();

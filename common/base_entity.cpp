@@ -2,9 +2,11 @@
 #include <QNetworkDatagram>
 
 #include <common/base_entity.hpp>
+#include <common/logging/flow_logger.hpp>
 
-BaseEntity::BaseEntity(uint32_t id, const EntityType& type, QObject* parrent)
-    : id_(id)
+BaseEntity::BaseEntity(uint32_t id, const EntityType& type, QObject* parent)
+    : QObject(parent)
+    , id_(id)
     , type_(type)
     , is_registered_(false)
 {
@@ -32,6 +34,7 @@ bool BaseEntity::setupNetwork(quint16 port)
 {
     if (!transport_) {
         transport_ = new UdpTransport(this);
+        transport_->setObjectName(QString("transport-%1-%2").arg(typeToString(type_)).arg(id_));
     }
 
     if (!transport_->init(port)) {
@@ -42,8 +45,14 @@ bool BaseEntity::setupNetwork(quint16 port)
         return false;
     }
 
-    connect(transport_, &UdpTransport::dataReceived,
-            this, &BaseEntity::handleIncomingRawData);
+    auto connection = connect(transport_, &UdpTransport::dataReceived,
+            this, &BaseEntity::handleIncomingRawData, Qt::DirectConnection);
+
+    if (!connection) {
+        qCritical() << "FATAL ERROR: Failed to connect UdpTransport signal!";
+    } else {
+        qDebug() << "Connection established successfully";        
+    }
 
     qDebug() << QString("[Entity %1 # %2] Network is UP on port %3")
                 .arg(typeToString(type_))
@@ -63,7 +72,7 @@ void BaseEntity::registerAtHub(const QHostAddress& hub_address, quint16 hub_port
     QDataStream ds(&packet, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
 
-    const uint32_t sender_id = id_;
+    const uint32_t sender_id = id_;    
     ds << sender_id << NetConfig::HUB_ID << static_cast<uint8_t>(SimMessageType::Registration);
 
     transport_->sendData(packet, hub_address_, hub_port_);
@@ -77,7 +86,7 @@ void BaseEntity::handleRegistrationResponse(QDataStream &ds) {
         is_registered_ = true;
         qDebug() << QString("[Entity %1] Registration SUCCESS at RadioHub").arg(id_);
 
-        emit registrationConfirmed();
+        emit registrationAtRadioHubConfirmed();
     } else {
         is_registered_ = false;
         qWarning() << QString("[Entity %1] Registration FAILED at RadioHub!").arg(id_);
@@ -99,15 +108,14 @@ void BaseEntity::sendSimData(ProtocolMsgType proto_type,
 
     if (result.is_socket_error_) {
         qWarning() << type_ << "#" << id_
-                   << " failed to send UDP datagram to node #"
-                   << target_id << ":" << result.toString();
-    } else {
-        qDebug() << type_ << "#" << id_
-                 << "sent UDP datagram to node #" << target_id;
+                   << " failed to send UDP datagram to node "
+                   << FlowLogger::formatId(target_id) << ":" << result.toString();
     }
 }
 
-void BaseEntity::handleIncomingRawData(const QByteArray &data, const QHostAddress &addr, quint16 port)
+void BaseEntity::handleIncomingRawData(const QByteArray& data,
+                                       const QHostAddress& addr,
+                                       quint16 port)
 {
     Q_UNUSED(addr);
     Q_UNUSED(port);

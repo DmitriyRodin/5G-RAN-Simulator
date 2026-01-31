@@ -36,8 +36,6 @@ private:
     void sendRegistrationRequest();
     void sendMeasurementReport();
 
-    bool is_attached_ = false;
-
     UeRrcState state_;
     uint32_t target_gnb_id_;
     /* Cell Radio Network Temporary Identifier (C-RNTI).
