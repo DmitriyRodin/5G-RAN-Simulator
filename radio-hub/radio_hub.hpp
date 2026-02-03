@@ -32,9 +32,10 @@ private slots:
                         quint16 sender_port);
 
 private:
-    void handleRegistration(const QByteArray &payload,
+    void handleRegistration(const uint32_t node_id,
                             const QHostAddress &sender_ip,
                             quint16 sender_port);
+
     void handleDeregistration(uint32_t src_id);
     void handleDataRouting(uint32_t src_id,
                            uint32_t target_id,

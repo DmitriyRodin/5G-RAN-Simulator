@@ -14,17 +14,39 @@ enum class EntityType {
 QString typeToString(EntityType type);
 
 struct UeContext {
-    int id;
+    uint32_t id;
+    uint16_t crnti;
     double last_rssi;
     QDateTime last_activity;
     bool is_attached;
     QHostAddress ip_address;
     quint16 port;
+
+    UeContext(uint32_t ue_id,
+              uint16_t new_crnti,
+              const QHostAddress& addr,
+              quint16 ip_port)
+        : id(ue_id)
+        , crnti(new_crnti)
+        , last_rssi(0.0)
+        , last_activity(QDateTime::currentDateTime())
+        , is_attached(false)
+        , ip_address(addr)
+        , port(ip_port)
+    {}
+    UeContext() : id(0), crnti(0), is_attached(false), port(0) {}
 };
 
 namespace NetConfig {
     const uint32_t HUB_ID = 0;
     const uint32_t BROADCAST_ID = 0xFFFFFFFF;
+
+    constexpr uint32_t GNB_ID_START = 1;
+    constexpr uint32_t UE_ID_START  = 500;
+}
+
+namespace SimConfig {
+    constexpr int RADIO_FRAME_DURATION_MS = 10;
 }
 
 enum class UeRrcState : uint8_t {
@@ -96,5 +118,10 @@ struct SimHeader {
     uint32_t target_id;
     SimMessageType type;
 };
+
+namespace HubResponse {
+    const uint8_t REG_DENIED   = 0;
+    const uint8_t REG_ACCEPTED = 1;
+}
 
 #endif // TYPES_HPP

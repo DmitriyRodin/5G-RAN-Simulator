@@ -23,11 +23,14 @@ void SimulationController::setupGnbStations()
     };
 
     for (int i = 0; i < GNB_COUNT; ++i) {
-        auto* gnb = new GnbLogic(i + 1 , this);
+        auto* gnb = new GnbLogic(i + NetConfig::GNB_ID_START , this);
         gnb->setPosition(gnbPositions[i]);
         gnb->setTxPower(43.0);
+        GnbCellConfig config;
+        config.tac = Tracking_Area_Code;
+        gnb->setCellConfig(config);
 
-        if (gnb->setupNetwork(0)) {            
+        if (gnb->setupNetwork(0)) {
             gnb->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
             gnb->run();
             gnbs_.append(gnb);
@@ -37,13 +40,13 @@ void SimulationController::setupGnbStations()
 
 void SimulationController::setupUeDevices()
 {
-    int ue_created = 0;
+    int ue_created = 1;
 
     for (int g = 0; g < gnbs_.size(); ++g) {
         QPointF gnbPos = gnbs_[g]->position();
 
-        for (int i = 0; i < 6; ++i) {
-            auto* ue = new UeLogic(ue_created + 1, this);
+        for (int i = 1; i < 6; ++i) {
+            auto* ue = new UeLogic(ue_created + NetConfig::UE_ID_START, this);
 
             double angle = QRandomGenerator::global()->generateDouble() * 2 * M_PI;
             double dist = QRandomGenerator::global()->bounded(100, 500);
@@ -61,7 +64,7 @@ void SimulationController::setupUeDevices()
     }
 
     while (ue_created < UE_COUNT ) {
-        auto* ue = new UeLogic(ue_created + 1, this);
+        auto* ue = new UeLogic(ue_created, this);
 
         ue->setPosition({-3000.0, -3000.0});
 

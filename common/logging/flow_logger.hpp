@@ -19,7 +19,9 @@ public:
                     const bool isIncoming);
 
 private:
+public:
     static QString formatId(uint32_t id);
+private:
     static QString msgTypeToString(const ProtocolMsgType msg_type);
 };
 
