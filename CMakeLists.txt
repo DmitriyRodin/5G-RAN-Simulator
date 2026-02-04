@@ -29,6 +29,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         common/udp_transport.cpp
         common/base_entity.hpp
         common/base_entity.cpp
+        common/sim_protocol.hpp
+        common/sim_protocol.cpp
         gnb/gnb_logic.hpp
         gnb/gnb_logic.cpp
         ue/src/ue_logic.hpp

@@ -51,6 +51,9 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id,
         case ProtocolMsgType::UserPlaneData:
             handleUeData(ue_id, payload);
             break;
+        case ProtocolMsgType::Sib1:
+            // ignore
+            break;
         // ...
         default:
             qDebug() << "[gNB] Unhandled protocol type:"

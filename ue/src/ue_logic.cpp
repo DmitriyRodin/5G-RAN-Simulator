@@ -13,7 +13,8 @@ UeLogic::UeLogic(uint32_t id, QObject *parent)
     , target_gnb_id_(0)
     , crnti_(0)
 {
-    qDebug() << "[UE #" << id_ << "] Created. Initial State: DETACHED";
+    qDebug() << "[UE #" << id_ << "] Created. "
+                                  "Initial State: DETACHED";
     timer_ = new QTimer(this);
     timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
 
@@ -32,7 +33,8 @@ void UeLogic::searchingForCell() {
     state_ = UeRrcState::SEARCHING_FOR_CELL;
 
     target_gnb_id_ = 0;
-    qDebug() << "[UE #" << id_ << "] Registered in Hub. State: SEARCHING_FOR_CELL";
+    qDebug() << "[UE #" << id_ << "] Registered in Hub. State: "
+                                  "SEARCHING_FOR_CELL";
 }
 
 void UeLogic::onProtocolMessageReceived(uint32_t gnb_id,
@@ -41,7 +43,6 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id,
 {
     switch (type) {
         case ProtocolMsgType::Sib1:
-        qDebug() << "UE#" << id_ << "ProtocolMsgType::Sib1";
             handleSib1(gnb_id, payload);
             break;
 
@@ -66,12 +67,14 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id,
             uint32_t ue_sender;
             QString text;
             ds >> ue_sender >> text;
-            qDebug() << "[UE #" << id_ << "] received from UE #" << ue_sender << " a message: " << text;
+            qDebug() << "[UE #" << id_ << "] received from UE #"
+                     << ue_sender << " a message: " << text;
             break;
         }
 
         default:
-            qDebug() << "[UE #" << id_ << "] Unknown protocol message from gNB" << gnb_id
+            qDebug() << "[UE #" << id_ << "] Unknown protocol message from gNB"
+                     << gnb_id
                      << "Type:" << static_cast<int>(type);
             break;
     }
@@ -79,10 +82,13 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id,
 
 void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray &payload) {
     if (state_ != UeRrcState::SEARCHING_FOR_CELL) {
+        qDebug() << "[UE #"<< id_ << "] ignores SIB1 fron gNB # "
+                 << gnb_id;
         return;
     }
 
-    qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
+    qDebug() << "[UE #" << id_ << "] Found Cell! gNB #"
+             << gnb_id;
 
     // Maybe: CHECK signal level (RSRP)
     state_ = UeRrcState::RRC_IDLE;
@@ -159,10 +165,6 @@ void UeLogic::handleRegistrationAccept(const QByteArray& payload) {
 }
 
 void UeLogic::onTick() {
-    if (state_ == UeRrcState::IDLE || state_ == UeRrcState::DETACHED) {
-        return;
-    }
-
     switch (state_) {
         case UeRrcState::DETACHED:
         case UeRrcState::RRC_IDLE:

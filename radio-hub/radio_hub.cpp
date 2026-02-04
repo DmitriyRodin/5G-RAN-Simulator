@@ -16,39 +16,27 @@ RadioHub::RadioHub(quint16 listen_port, QObject *parent)
     }
 }
 
-void RadioHub::onDataReceived(const QByteArray &data,
+void RadioHub::onDataReceived(const QByteArray &raw_data,
                               const QHostAddress &sender_ip,
                               quint16 sender_port)
 {
-    const int MIN_HEADER_SIZE = 9;
+    auto packet = SimProtocol::parse(raw_data);
 
-    if (data.size() < MIN_HEADER_SIZE) {
-        qWarning() << "RadioHub: Packet too small!" << data.size();
+    if (!packet.isValid) {
         return;
     }
 
-    QDataStream ds(data);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    SimHeader header;
-    uint8_t raw_type;
-    ds >> header.source_id >> header.target_id >> raw_type;
-    header.type = static_cast<SimMessageType>(raw_type);
-
-    QByteArray payload = data.mid(sizeof(SimHeader));
-
-    if (header.type == SimMessageType::Registration) {
-        handleRegistration(header.source_id,
-                           sender_ip,
-                           sender_port);
-    } else if (header.type == SimMessageType::Data) {
-        handleDataRouting(header.source_id, header.target_id, payload);
-    } else if (header.type == SimMessageType::Deregistration) {
-        handleDeregistration(header.source_id);
-    } else {
-       qWarning() << QString("[RadioHub] Uknown SimMessageType from %1 received")
-                       .arg(header.source_id);
+    if (packet.isForHub()) {
+        handleHubMessage(packet, sender_ip, sender_port);
+        return;
     }
+
+    if (packet.isBroadcast()) {
+        broadcastToAll(raw_data, packet.srcId);
+        return;
+    }
+
+    forwardToNode(raw_data, packet.dstId);
 }
 
 void RadioHub::handleRegistration(const uint32_t node_id,
@@ -61,7 +49,8 @@ void RadioHub::handleRegistration(const uint32_t node_id,
         qWarning() << "Registration REJECTED: Invalid Reserved ID";
         reg_status = HubResponse::REG_DENIED;
     } else if (nodes_.contains(node_id)) {
-        qWarning() << "Registration stoped: the node with this ID already registred";
+        qWarning() << "Registration stoped: the node with "
+                      "this ID already registred";
         reg_status = HubResponse::REG_DENIED;
     } else {
         nodes_[node_id] = {node_id, sender_ip, sender_port};
@@ -77,7 +66,54 @@ void RadioHub::handleRegistration(const uint32_t node_id,
        << static_cast<uint8_t>(SimMessageType::RegistrationResponse)
        << reg_status;
 
-     transport_->sendData(response, sender_ip, sender_port);
+    transport_->sendData(response, sender_ip, sender_port);
+}
+
+void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket &packet,
+                                const QHostAddress &sender_ip,
+                                quint16 sender_port)
+{
+    switch(packet.type) {
+        case SimMessageType::Registration: {
+            handleRegistration(packet.srcId, sender_ip, sender_port);
+            break;
+        }
+        case SimMessageType::Deregistration: {
+            handleDeregistration(packet.srcId);
+            break;
+        }
+        default: {
+            qWarning() << "[RadioHub] unknown SimMessageType";
+        }
+    }
+}
+
+void RadioHub::broadcastToAll(const QByteArray &raw_data,
+                              uint32_t src_id)
+{
+    uint32_t sent_count = 0;
+    for (const auto& node: nodes_) {
+        if (node.id == src_id) {
+            continue;
+        }
+        transport_->sendData(raw_data, node.address, node.port);
+        ++sent_count;
+    }
+    qDebug() << QString("[RadioHub] Broadcast from ID:%1 | "
+                        "Size:%2 bytes | Delivered to:%3 nodes")
+                    .arg(src_id)
+                    .arg(raw_data.size())
+                    .arg(sent_count);
+}
+
+void RadioHub::forwardToNode(const QByteArray &raw_data, uint32_t dst_id)
+{
+    auto it = nodes_.find(dst_id);
+    if (it != nodes_.end()) {
+        transport_->sendData(raw_data, it.value().address, it.value().port);
+    } else {
+        qWarning() << "[RadioHub]: destination node doesn't registred";
+    }
 }
 
 void RadioHub::handleDeregistration(uint32_t src_id)
@@ -92,52 +128,3 @@ void RadioHub::handleDeregistration(uint32_t src_id)
                       .arg(src_id);
     }
 }
-
-void RadioHub::handleDataRouting(uint32_t src_id,
-                                 uint32_t target_id,
-                                 const QByteArray &payload)
-{
-    if (!nodes_.contains(src_id)) {
-        qWarning() << "Src_id doesn't registred";
-        return;
-    }
-
-    const NodeInfo &src = nodes_[src_id];
-
-    if (target_id == NetConfig::BROADCAST_ID) {
-        for (const NodeInfo &dst : nodes_.values()) {
-            if (dst.id != src_id) {
-                deliverPacket(src, dst, payload);
-            }
-        }
-    }
-    else if (nodes_.contains(target_id)) {
-        "RadioHub::handleDataRouting - > call deliverePacket()";
-        deliverPacket(src, nodes_[target_id], payload);
-    }
-}
-
-void RadioHub::deliverPacket(const NodeInfo &src,
-                             const NodeInfo &dst,
-                             const QByteArray &payload)
-{
-    QByteArray packet;
-    QDataStream out(&packet, QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::BigEndian);
-
-    out << static_cast<uint32_t>(src.id) << static_cast<uint32_t>(dst.id)
-        << static_cast<uint8_t>(SimMessageType::Data);
-
-    packet.append(payload);
-
-    sendingResult res = transport_->sendData(packet, dst.address, dst.port);
-    if (res.is_socket_error_) {
-        qWarning() << "[RadioHub] Failed to deliver packet to"
-                   << dst.id << dst.address << dst.port << ":"
-                   << res.toString();
-    } else {
-        qDebug() << "[RadioHub] Delivered packet to" << dst.id
-                 << dst.address << dst.port << "bytes:" << res.bytes_;
-    }
-}
-
