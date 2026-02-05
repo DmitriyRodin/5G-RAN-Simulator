@@ -5,6 +5,7 @@
 #include <QMap>
 #include "common/types.hpp"
 #include "common/udp_transport.hpp"
+#include "common/sim_protocol.hpp"
 
 struct NodeInfo {
     uint32_t id;
@@ -32,17 +33,17 @@ private slots:
                         quint16 sender_port);
 
 private:
+    void handleHubMessage(const SimProtocol::DecodedPacket &packet,
+                              const QHostAddress &sender_ip,
+                              quint16 sender_port);
+    void broadcastToAll(const QByteArray &raw_data, uint32_t src_id);
+    void forwardToNode(const QByteArray &raw_data, uint32_t dst_id);
+
     void handleRegistration(const uint32_t node_id,
                             const QHostAddress &sender_ip,
                             quint16 sender_port);
-
     void handleDeregistration(uint32_t src_id);
-    void handleDataRouting(uint32_t src_id,
-                           uint32_t target_id,
-                           const QByteArray &payload);
-    void deliverPacket(const NodeInfo &src,
-                       const NodeInfo &dst,
-                       const QByteArray &payload);
+
 
     UdpTransport* transport_ = nullptr;
     QMap<uint32_t, NodeInfo> nodes_;

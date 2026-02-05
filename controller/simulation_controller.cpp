@@ -63,8 +63,8 @@ void SimulationController::setupUeDevices()
         }
     }
 
-    while (ue_created < UE_COUNT ) {
-        auto* ue = new UeLogic(ue_created, this);
+    while (ue_created <= UE_COUNT ) {
+        auto* ue = new UeLogic(ue_created + NetConfig::UE_ID_START, this);
 
         ue->setPosition({-3000.0, -3000.0});
 
