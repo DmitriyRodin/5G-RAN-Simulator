@@ -25,6 +25,8 @@ private slots:
 
 private:
     void handleSib1(uint32_t gnb_id, const QByteArray &payload);
+    void sendRachPreamble();
+    void handleRar(uint32_t gnb_id, const QByteArray &payload);
 
     void handleRegistrationAccept(const QByteArray& payload);
     void handleRrcReconfiguration(const QByteArray& payload);
@@ -32,6 +34,7 @@ private:
     void sendRrcSetupRequest(uint32_t gnb_id);
     void handleRrcRelease(uint32_t gnb_id);
     void handleRrcSetup(uint32_t gnb_id, const QByteArray &payload);
+    void sendRrcSetupComplete(uint32_t gnb_id);
 
     void sendRegistrationRequest();
     void sendMeasurementReport();
@@ -42,6 +45,8 @@ private:
      * 3GPP TS 38.321 — MAC protocol specification: page 146
     */
     uint16_t crnti_;
+    uint16_t last_rach_ra_rnti_;
+    uint64_t sent_msg3_identity_;
 
     QTimer* timer_ = nullptr;
     std::chrono::steady_clock::time_point last_report_time_;

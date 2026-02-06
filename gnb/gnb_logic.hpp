@@ -10,7 +10,7 @@
 struct GnbCellConfig {
     uint16_t tac = 100;          // Tracking Area Code
     uint16_t mcc = 255;          // Mobile Country Code
-    uint16_t mnc = 01;           // Mobile Network Code
+    uint16_t mnc = 1;            // Mobile Network Code
     int16_t minRxLevel = -115;
     double txPowerDb = 43.0;
 };
@@ -28,11 +28,12 @@ private slots:
 private:
     void onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type, const QByteArray &payload);
     void sendBroadcastInfo();
+    void handleRachPreamble(uint32_t ueId, const QByteArray &payload);
+    void updateUeContext(uint32_t ueId, uint16_t crnti);
     void handleUeData(uint32_t ue_id, const QByteArray& payload);
     void handleRrcSetupRequest(uint32_t ueId,
-                               const QByteArray& payload,
-                               const QHostAddress &senderIp,
-                               quint16 senderPort);
+                               const QByteArray& payload);
+    void handleRrcSetupComplete(uint32_t ue_id, const QByteArray &payload);
     void handleRegistrationRequest(uint32_t ue_id, const QByteArray& payload);
     void handleMeasurementReport(const QJsonObject &obj);
     void triggerHandover(int ue_id, int target_Gnb_id);
@@ -40,8 +41,8 @@ private:
     QTimer* main_timer_ = nullptr;
     std::chrono::steady_clock::time_point last_broadcast_;
     const std::chrono::milliseconds broadcast_interval_{200};
-    std::unordered_map<uint, UeContext> ue_contexts_;
-
+    QMap<uint32_t, UeContext> ue_contexts_;
+    uint16_t next_crnti_counter_ = 1000;
     GnbCellConfig cellConfig_;
 };
 

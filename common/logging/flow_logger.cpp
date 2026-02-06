@@ -11,10 +11,11 @@ void FlowLogger::log(const EntityType type,
     QString direction = isIncoming ? "  <----------  " : "  ---------->  ";
     QString msgName = msgTypeToString(msg_type);
 
-    qDebug().noquote() << QString("[%1#%2] %3 [%4]  :  %5")
+    qDebug().noquote() << QString("[%1#%2] %3 %4[%5]  :  %6")
                             .arg(typeToString(type))
                             .arg(formatId(from))
                             .arg(direction)
+                            .arg(typeToString(getOppositeType(type)))
                             .arg(formatId(to))
                             .arg(msgName);
 }
@@ -86,4 +87,9 @@ QString FlowLogger::msgTypeToString(const ProtocolMsgType msg_type)
         default:
             return "UNKNOWN_MSG_TYPE";
     }
+}
+
+EntityType FlowLogger::getOppositeType(EntityType senderType)
+{
+    return (senderType == EntityType::GNB) ? EntityType::UE : EntityType::GNB;
 }
