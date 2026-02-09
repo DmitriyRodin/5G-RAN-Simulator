@@ -1,8 +1,9 @@
 #include <QDebug>
 #include <QNetworkDatagram>
 
-#include <common/base_entity.hpp>
-#include <common/logging/flow_logger.hpp>
+#include "common/base_entity.hpp"
+#include "common/logging/flow_logger.hpp"
+#include "common/sim_protocol.hpp"
 
 BaseEntity::BaseEntity(uint32_t id, const EntityType& type, QObject* parent)
     : QObject(parent)
@@ -97,19 +98,26 @@ void BaseEntity::sendSimData(ProtocolMsgType proto_type,
                              const QByteArray& payload,
                              uint32_t target_id)
 {
-    QByteArray packet;
-    QDataStream ds(&packet, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
+    QByteArray protocolPayload;
 
-    ds << id_ << target_id << static_cast<uint8_t>(SimMessageType::Data);
-    ds << static_cast<uint8_t>(proto_type) << payload;
+    protocolPayload.append(static_cast<char>(proto_type));
+    protocolPayload.append(payload);
 
-    sendingResult result = transport_->sendData(packet, hub_address_, hub_port_);
+    QByteArray finalPacket = SimProtocol::buildPacket(
+        id_,
+        target_id,
+        SimMessageType::Data,
+        protocolPayload
+    );
+
+    sendingResult result = transport_->sendData(finalPacket, hub_address_, hub_port_);
 
     if (result.is_socket_error_) {
-        qWarning() << type_ << "#" << id_
-                   << " failed to send UDP datagram to node "
-                   << FlowLogger::formatId(target_id) << ":" << result.toString();
+        qWarning() << QString("[%1 #%2] Send Error to %3: %4")
+                      .arg(typeToString(type_))
+                      .arg(id_)
+                      .arg(target_id)
+                      .arg(result.toString());
     }
 }
 
@@ -120,33 +128,44 @@ void BaseEntity::handleIncomingRawData(const QByteArray& data,
     Q_UNUSED(addr);
     Q_UNUSED(port);
 
-    QDataStream ds(data);
-    ds.setByteOrder(QDataStream::BigEndian);
+    auto decoded = SimProtocol::parse(data);
 
-    uint32_t source_id, target_id;
-    uint8_t raw_sim_type;
-    ds >> source_id >> target_id >> raw_sim_type;
-
-    if (target_id != id_ && target_id != NetConfig::BROADCAST_ID) {
+    if (!decoded.isValid) {
         return;
     }
 
-    SimMessageType sim_type = static_cast<SimMessageType>(raw_sim_type);
-
-    if (sim_type == SimMessageType::RegistrationResponse) {
-        handleRegistrationResponse(ds);
+    if (!decoded.isForMe(id_) && !decoded.isBroadcast()) {
         return;
     }
 
-    if (sim_type == SimMessageType::Data) {
-        uint8_t raw_proto_type;
-        ds >> raw_proto_type;
-        ProtocolMsgType proto_type = static_cast<ProtocolMsgType>(raw_proto_type);
+    switch (decoded.type) {
+        case SimMessageType::RegistrationResponse: {
+            QDataStream ds(decoded.payload);
+            ds.setByteOrder(QDataStream::BigEndian);
+            handleRegistrationResponse(ds);
+            break;
+        }
 
-        int headerSize = ds.device()->pos();
-        QByteArray payload = data.mid(headerSize);
+        case SimMessageType::Data: {
+            if (decoded.payload.isEmpty()) return;
 
-        onProtocolMessageReceived(source_id, proto_type, payload);
+            QDataStream ds(decoded.payload);
+            ds.setByteOrder(QDataStream::BigEndian);
+
+            uint8_t raw_proto_type;
+            ds >> raw_proto_type;
+            ProtocolMsgType proto_type = static_cast<ProtocolMsgType>(raw_proto_type);
+
+            QByteArray actualPayload = decoded.payload.mid(sizeof(uint8_t));
+
+            onProtocolMessageReceived(decoded.srcId, proto_type, actualPayload);
+            break;
+        }
+
+        default:
+            qWarning() << QString("[Entity %1] Received unknown SimMessageType: %2")
+                          .arg(id_).arg(static_cast<int>(decoded.type));
+            break;
     }
 }
 

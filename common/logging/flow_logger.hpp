@@ -17,12 +17,10 @@ public:
                     const uint32_t to,
                     const ProtocolMsgType msg_type,
                     const bool isIncoming);
-
-private:
-public:
     static QString formatId(uint32_t id);
 private:
     static QString msgTypeToString(const ProtocolMsgType msg_type);
+    static EntityType getOppositeType(EntityType senderType);
 };
 
 #endif // FLOW_LOGGER_HPP
