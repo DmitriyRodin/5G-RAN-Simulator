@@ -271,26 +271,11 @@ void UeLogic::handleRegistrationAccept(const QByteArray& payload) {
 }
 
 void UeLogic::onTick() {
-    switch (state_) {
-        case UeRrcState::DETACHED:
-        case UeRrcState::RRC_IDLE:
-        case UeRrcState::RRC_INACTIVE:
-            // ...
-            return;
-
-        case UeRrcState::SEARCHING_FOR_CELL:
-                // ...
-                return;
-
-            case UeRrcState::RRC_CONNECTED:
-                // ...
-                break;
-
-            case UeRrcState::RRC_CONNECTING:
-                return;
-        }
     auto now = std::chrono::steady_clock::now();
-    if (now - last_report_time_ >= report_interval_) {
+
+    bool canSendReports = (state_ == UeRrcState::RRC_CONNECTED);
+
+    if (canSendReports && (now - last_report_time_ >= report_interval_)) {
         sendMeasurementReport();
         last_report_time_ = now;
     }
@@ -313,17 +298,30 @@ void UeLogic::sendMeasurementReport() {
     sendSimData(ProtocolMsgType::MeasurementReport, report, target_gnb_id_);
 }
 
-void UeLogic::handleRrcReconfiguration(const QByteArray& payload) {
+void UeLogic::handleRrcReconfiguration(const QByteArray &payload)
+{
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
 
-    uint32_t new_gnb_id;
-    ds >> new_gnb_id;
+    uint32_t target_gnb_id;
 
-    qDebug() << "[UE #" << id_ << "] RRC Reconfiguration: Handover command to gNB #"
-             << new_gnb_id;
+    if (ds.atEnd()) {
+        return;
+    }
+    ds >> target_gnb_id;
 
-    target_gnb_id_ = new_gnb_id;
+    qDebug() << QString("[UE %1] <--- RRC Reconfiguration received! Switching from gNB %2 to gNB %3")
+                .arg(id_).arg(target_gnb_id_).arg(target_gnb_id);
+
+    state_ = UeRrcState::RRC_CONNECTING;
+
+    target_gnb_id_ = target_gnb_id;
+
+    qDebug() << QString("[UE %1] Initiating RACH on target gNB %2...").arg(id_).arg(target_gnb_id);
+
+    last_report_time_ = std::chrono::steady_clock::now();
+
+    sendRachPreamble();
 }
 
 void UeLogic::sendChatMessage(uint32_t target_ue_id, const QString& text) {

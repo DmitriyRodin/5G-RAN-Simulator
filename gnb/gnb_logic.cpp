@@ -46,7 +46,7 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id,
             break;
 
         case ProtocolMsgType::MeasurementReport:
-            // Handle Measurement Report
+            handleMeasurementReport(ue_id, payload);
             break;
 
         case ProtocolMsgType::UserPlaneData:
@@ -164,43 +164,53 @@ void GnbLogic::handleRegistrationRequest(uint32_t ue_id, const QByteArray& paylo
     sendSimData(ProtocolMsgType::RrcSetup, response_data, ue_id);
 }
 
-void GnbLogic::handleMeasurementReport(const QJsonObject &obj)
+void GnbLogic::handleMeasurementReport(uint32_t ue_id, const QByteArray &payload)
 {
-    int ue_id = obj["ue_id"].toInt();
-    QJsonArray measurements = obj["measurements"].toArray();
-
-    qDebug() << "GNB #" << id_ << " RRC info: Received Measurement Report from UE #"
-             << ue_id;
-
-    int best_target_Gnb_id = -1;
-    double best_rssi = -1000.0;
-    double serving_rssi = -1000.0;
-
-    for (int i = 0; i < measurements.size(); ++i) {
-        QJsonObject m = measurements[i].toObject();
-        int target_id = m["gnb_id"].toInt();
-        double rssi = m["rssi"].toDouble();
-
-        if (target_id == id_) {
-            serving_rssi = rssi;
-        } else if (rssi > best_rssi) {
-            best_rssi = rssi;
-            best_target_Gnb_id = target_id;
-        }
+    if (!ue_contexts_.contains(ue_id)) {
+        qWarning() << "[gNB] Measurement Report from unknown UE:" << ue_id;
+        return;
     }
+
+    UeContext &ctx = ue_contexts_[ue_id];
+
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    uint32_t reported_gnb_id;
+    double rsrp;
+
+    ds >> reported_gnb_id;
+    ds >> rsrp;
+
+    ctx.last_activity = QDateTime::currentDateTime();
+
+    qDebug() << QString("[gNB %1] <--- Measurement Report from UE %2. Cell: %3, RSRP: %4 dBm")
+                .arg(id_).arg(ue_id).arg(reported_gnb_id).arg(rsrp);
 
     const double handover_hysteresis = 3.0;
 
-    if (best_target_Gnb_id != -1 && (best_rssi > (serving_rssi + handover_hysteresis))) {
-        qDebug() << "GNB #" << id_ << " has CRITICAL situation: Triggering Handover for UE #" << ue_id
-                 << "to GNB #" << best_target_Gnb_id
-                 << "(Serving:" << serving_rssi << "dBm, Target: " << best_rssi << "dBm)";
-
-        triggerHandover(ue_id, best_target_Gnb_id);
+    if (reported_gnb_id == this->id_) {
+        ctx.last_rssi = rsrp;
+        qDebug() << QString("[gNB %1] Serving cell update for UE %2: %3 dBm")
+                    .arg(id_).arg(ue_id).arg(rsrp);
     }
+    else {
+        qDebug() << QString("[gNB %1] Neighbor report from UE %2: Cell %3 is %4 dBm")
+                    .arg(id_).arg(ue_id).arg(reported_gnb_id).arg(rsrp);
+
+        if (rsrp > (ctx.last_rssi + handover_hysteresis)) {
+            qDebug() << QString("[gNB %1] !!! CRITICAL: Triggering Handover for UE %2 to Cell %3")
+                        .arg(id_).arg(ue_id).arg(reported_gnb_id);
+
+            triggerHandover(ue_id, reported_gnb_id);
+        }
+    }
+
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::MeasurementReport, true);
 }
 
-void GnbLogic::triggerHandover(int ue_id, int target_Gnb_id) {
+void GnbLogic::triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id) {
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcReconfiguration, false);
     QByteArray payload;
     QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
