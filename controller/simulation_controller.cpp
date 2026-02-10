@@ -70,6 +70,7 @@ void SimulationController::setupUeDevices()
 
         if (ue->setupNetwork(0)) {
             ue->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
+            ue->run();
             ues_.append(ue);
         }
         ue_created++;
