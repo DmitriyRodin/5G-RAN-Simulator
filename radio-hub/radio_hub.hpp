@@ -1,11 +1,11 @@
 #ifndef RADIOHUB_HPP
 #define RADIOHUB_HPP
 
-#include <QObject>
 #include <QMap>
-#include "common/types.hpp"
-#include "common/udp_transport.hpp"
+#include <QObject>
+
 #include "common/sim_protocol.hpp"
+#include "common/udp_transport.hpp"
 
 struct NodeInfo {
     uint32_t id;
@@ -24,29 +24,24 @@ class RadioHub : public QObject
     Q_OBJECT
 
 public:
-    explicit RadioHub(quint16 listen_port = 5555,
-                      QObject *parent = nullptr);
+    explicit RadioHub(quint16 listen_port = 5555, QObject* parent = nullptr);
 
 private slots:
-    void onDataReceived(const QByteArray &data,
-                        const QHostAddress &sender_ip,
+    void onDataReceived(const QByteArray& data, const QHostAddress& sender_ip,
                         quint16 sender_port);
 
 private:
-    void handleHubMessage(const SimProtocol::DecodedPacket &packet,
-                              const QHostAddress &sender_ip,
-                              quint16 sender_port);
-    void broadcastToAll(const QByteArray &raw_data, uint32_t src_id);
-    void forwardToNode(const QByteArray &raw_data, uint32_t dst_id);
+    void handleHubMessage(const SimProtocol::DecodedPacket& packet,
+                          const QHostAddress& sender_ip, quint16 sender_port);
+    void broadcastToAll(const QByteArray& raw_data, uint32_t src_id);
+    void forwardToNode(const QByteArray& raw_data, uint32_t dst_id);
 
     void handleRegistration(const uint32_t node_id,
-                            const QHostAddress &sender_ip,
-                            quint16 sender_port);
+                            const QHostAddress& sender_ip, quint16 sender_port);
     void handleDeregistration(uint32_t src_id);
-
 
     UdpTransport* transport_ = nullptr;
     QMap<uint32_t, NodeInfo> nodes_;
 };
 
-#endif // RADIOHUB_HPP
+#endif  // RADIOHUB_HPP

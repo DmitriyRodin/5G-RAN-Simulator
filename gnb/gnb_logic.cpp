@@ -1,18 +1,19 @@
+#include "gnb_logic.hpp"
+
 #include <QDebug>
 #include <QRandomGenerator>
 
-#include "gnb_logic.hpp"
 #include "common/logging/flow_logger.hpp"
 
-GnbLogic::GnbLogic(uint32_t id, QObject* parent )
+GnbLogic::GnbLogic(uint32_t id, QObject* parent)
     : BaseEntity(id, EntityType::GNB, parent)
 {
     main_timer_ = new QTimer(this);
     main_timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
     connect(main_timer_, &QTimer::timeout, this, &GnbLogic::onTick);
     last_broadcast_ = std::chrono::steady_clock::now();
-    connect(this, &BaseEntity::registrationAtRadioHubConfirmed,
-            this,&GnbLogic::sendBroadcastInfo);
+    connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,
+            &GnbLogic::sendBroadcastInfo);
 }
 
 void GnbLogic::setCellConfig(const GnbCellConfig& config)
@@ -20,12 +21,14 @@ void GnbLogic::setCellConfig(const GnbCellConfig& config)
     cellConfig_ = config;
 }
 
-void GnbLogic::run() {
+void GnbLogic::run()
+{
     qDebug() << "GNB #" << id_ << " timer starts";
     main_timer_->start();
 }
 
-void GnbLogic::onTick() {
+void GnbLogic::onTick()
+{
     auto now = std::chrono::steady_clock::now();
 
     if (now - last_broadcast_ >= broadcast_interval_) {
@@ -34,9 +37,8 @@ void GnbLogic::onTick() {
     }
 }
 
-void GnbLogic::onProtocolMessageReceived(uint32_t ue_id,
-                                         ProtocolMsgType type,
-                                         const QByteArray &payload)
+void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
+                                         const QByteArray& payload)
 {
     // UPDATE UeContext data
 
@@ -79,24 +81,33 @@ void GnbLogic::sendBroadcastInfo()
     ds << static_cast<int16_t>(cellConfig_.mnc);
 
     sendSimData(ProtocolMsgType::Sib1, broadcast_info, NetConfig::BROADCAST_ID);
-    FlowLogger::log(type_, id_, NetConfig::BROADCAST_ID,
-                    ProtocolMsgType::Sib1, false);
+    FlowLogger::log(type_, id_, NetConfig::BROADCAST_ID, ProtocolMsgType::Sib1,
+                    false);
 }
 
-void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray &payload)
+void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)
 {
-    qDebug() << QString("[gNB %1] <--- Msg1 (RACH Preamble) "
-                        "received from UE %2.").arg(id_).arg(ueId);
+    qDebug() << QString(
+                    "[gNB %1] <--- Msg1 (RACH Preamble) "
+                    "received from UE %2.")
+                    .arg(id_)
+                    .arg(ueId);
 
     QDataStream in(payload);
     in.setByteOrder(QDataStream::BigEndian);
     uint16_t ra_rnti;
     in >> ra_rnti;
 
-    uint16_t tempCrnti = static_cast<uint16_t>(next_crnti_counter_ + (ueId % 9000));
+    uint16_t tempCrnti =
+        static_cast<uint16_t>(next_crnti_counter_ + (ueId % 9000));
 
-
-    qDebug() << QString("[gNB %1] <--- Msg1 (RACH Preamble) received from UE %2. ra_rnti = %3. tempCrnti = %4").arg(id_).arg(ueId).arg(ra_rnti).arg(tempCrnti);
+    qDebug() << QString(
+                    "[gNB %1] <--- Msg1 (RACH Preamble) received from UE %2. "
+                    "ra_rnti = %3. tempCrnti = %4")
+                    .arg(id_)
+                    .arg(ueId)
+                    .arg(ra_rnti)
+                    .arg(tempCrnti);
 
     updateUeContext(ueId, tempCrnti);
 
@@ -110,8 +121,12 @@ void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray &payload)
     uint16_t timingAdvance = 0;
     out << timingAdvance;
 
-    qDebug() << QString("[gNB %1] ---> Msg2 (RAR) sent to UE %2. Assigned T-CRNTI: %3")
-                .arg(id_).arg(ueId).arg(tempCrnti);
+    qDebug()
+        << QString(
+               "[gNB %1] ---> Msg2 (RAR) sent to UE %2. Assigned T-CRNTI: %3")
+               .arg(id_)
+               .arg(ueId)
+               .arg(tempCrnti);
 
     FlowLogger::log(type_, id_, ueId, ProtocolMsgType::Rar, false);
     sendSimData(ProtocolMsgType::Rar, rarPayload, ueId);
@@ -137,15 +152,17 @@ void GnbLogic::handleUeData(uint32_t ue_id, const QByteArray& payload)
     // HANDLE UE data logic
 }
 
-void GnbLogic::handleRegistrationRequest(uint32_t ue_id, const QByteArray& payload)
+void GnbLogic::handleRegistrationRequest(uint32_t ue_id,
+                                         const QByteArray& payload)
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
 
     qDebug() << QString("[gNB %1] Received RRC Connection Request from UE %2")
-                .arg(id_).arg(ue_id);
+                    .arg(id_)
+                    .arg(ue_id);
 
-    bool isAccepted = true; // Assumption: the base station has enough resources
+    bool isAccepted = true;  // Assumption: gNB has enough resources
 
     QByteArray response_data;
     QDataStream out(&response_data, QIODevice::WriteOnly);
@@ -164,14 +181,15 @@ void GnbLogic::handleRegistrationRequest(uint32_t ue_id, const QByteArray& paylo
     sendSimData(ProtocolMsgType::RrcSetup, response_data, ue_id);
 }
 
-void GnbLogic::handleMeasurementReport(uint32_t ue_id, const QByteArray &payload)
+void GnbLogic::handleMeasurementReport(uint32_t ue_id,
+                                       const QByteArray& payload)
 {
     if (!ue_contexts_.contains(ue_id)) {
         qWarning() << "[gNB] Measurement Report from unknown UE:" << ue_id;
         return;
     }
 
-    UeContext &ctx = ue_contexts_[ue_id];
+    UeContext& ctx = ue_contexts_[ue_id];
 
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
@@ -184,33 +202,50 @@ void GnbLogic::handleMeasurementReport(uint32_t ue_id, const QByteArray &payload
 
     ctx.last_activity = QDateTime::currentDateTime();
 
-    qDebug() << QString("[gNB %1] <--- Measurement Report from UE %2. Cell: %3, RSRP: %4 dBm")
-                .arg(id_).arg(ue_id).arg(reported_gnb_id).arg(rsrp);
+    qDebug() << QString(
+                    "[gNB %1] <--- Measurement Report from UE %2. Cell: %3, "
+                    "RSRP: %4 dBm")
+                    .arg(id_)
+                    .arg(ue_id)
+                    .arg(reported_gnb_id)
+                    .arg(rsrp);
 
     const double handover_hysteresis = 3.0;
 
     if (reported_gnb_id == this->id_) {
         ctx.last_rssi = rsrp;
         qDebug() << QString("[gNB %1] Serving cell update for UE %2: %3 dBm")
-                    .arg(id_).arg(ue_id).arg(rsrp);
-    }
-    else {
-        qDebug() << QString("[gNB %1] Neighbor report from UE %2: Cell %3 is %4 dBm")
-                    .arg(id_).arg(ue_id).arg(reported_gnb_id).arg(rsrp);
+                        .arg(id_)
+                        .arg(ue_id)
+                        .arg(rsrp);
+    } else {
+        qDebug()
+            << QString("[gNB %1] Neighbor report from UE %2: Cell %3 is %4 dBm")
+                   .arg(id_)
+                   .arg(ue_id)
+                   .arg(reported_gnb_id)
+                   .arg(rsrp);
 
         if (rsrp > (ctx.last_rssi + handover_hysteresis)) {
-            qDebug() << QString("[gNB %1] !!! CRITICAL: Triggering Handover for UE %2 to Cell %3")
-                        .arg(id_).arg(ue_id).arg(reported_gnb_id);
+            qDebug() << QString(
+                            "[gNB %1] !!! CRITICAL: Triggering Handover for UE "
+                            "%2 to Cell %3")
+                            .arg(id_)
+                            .arg(ue_id)
+                            .arg(reported_gnb_id);
 
             triggerHandover(ue_id, reported_gnb_id);
         }
     }
 
-    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::MeasurementReport, true);
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::MeasurementReport,
+                    true);
 }
 
-void GnbLogic::triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id) {
-    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcReconfiguration, false);
+void GnbLogic::triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id)
+{
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcReconfiguration,
+                    false);
     QByteArray payload;
     QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
@@ -219,13 +254,14 @@ void GnbLogic::triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id) {
     sendSimData(ProtocolMsgType::RrcReconfiguration, payload, ue_id);
 }
 
-void GnbLogic::handleRrcSetupRequest(uint32_t ue_id,
-                                     const QByteArray& payload)
+void GnbLogic::handleRrcSetupRequest(uint32_t ue_id, const QByteArray& payload)
 {
     if (!ue_contexts_.contains(ue_id)) {
-        qWarning() << QString("[gNB %1] Security Alert: Msg3 received "
-                              "from unknown UE ID: %2. Ignoring.")
-                      .arg(id_).arg(ue_id);
+        qWarning() << QString(
+                          "[gNB %1] Security Alert: Msg3 received "
+                          "from unknown UE ID: %2. Ignoring.")
+                          .arg(id_)
+                          .arg(ue_id);
         return;
     }
 
@@ -234,14 +270,20 @@ void GnbLogic::handleRrcSetupRequest(uint32_t ue_id,
     QDataStream in(payload);
     in.setByteOrder(QDataStream::BigEndian);
 
-    quint64 received_identity = 0;)
+    quint64 received_identity = 0;
     uint8_t establishmentCause;
     in >> received_identity >> establishmentCause;
 
     uint16_t assigned_crnti = ctx.crnti;
 
-    qDebug() << QString("[gNB %1] <--- Msg3 (RRC Setup Request) from UE %2 (C-RNTI %3). Payload Identity: %4, establishmentCause: %5")
-                .arg(id_).arg(ue_id).arg(assigned_crnti).arg(received_identity).arg(establishmentCause);
+    qDebug() << QString(
+                    "[gNB %1] <--- Msg3 (RRC Setup Request) from UE %2 "
+                    "(C-RNTI %3). Payload Identity: %4, establishmentCause: %5")
+                    .arg(id_)
+                    .arg(ue_id)
+                    .arg(assigned_crnti)
+                    .arg(received_identity)
+                    .arg(establishmentCause);
 
     QByteArray msg4Payload;
     QDataStream out(&msg4Payload, QIODevice::WriteOnly);
@@ -256,7 +298,7 @@ void GnbLogic::handleRrcSetupRequest(uint32_t ue_id,
     sendSimData(ProtocolMsgType::RrcSetup, msg4Payload, ue_id);
 }
 
-void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray &payload)
+void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
 {
     if (!ue_contexts_.contains(ue_id)) {
         qWarning() << "[gNB] Msg5 received from unknown UE:" << ue_id;
@@ -277,6 +319,11 @@ void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray &payload)
 
     FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcSetupComplete, true);
 
-    qDebug() << QString("[gNB %1] <--- Msg5 Received. UE %2 is now FULLY CONNECTED (C-RNTI %3). PLMN: %4")
-                .arg(id_).arg(ue_id).arg(ctx.crnti).arg(selected_plmn);
+    qDebug() << QString(
+                    "[gNB %1] <--- Msg5 Received. UE %2 is now FULLY "
+                    "CONNECTED (C-RNTI %3). PLMN: %4")
+                    .arg(id_)
+                    .arg(ue_id)
+                    .arg(ctx.crnti)
+                    .arg(selected_plmn);
 }

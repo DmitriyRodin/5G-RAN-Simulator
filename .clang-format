@@ -1,0 +1,39 @@
+BasedOnStyle: Google
+ColumnLimit: 80
+AllowShortFunctionsOnASingleLine: None
+AllowShortEnumsOnASingleLine: false
+PackConstructorInitializers: Never
+ConstructorInitializerIndentWidth: 4
+BreakConstructorInitializers: BeforeComma
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterControlStatement: false
+  AfterNamespace: false
+  BeforeElse: false
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+#  STL / system
+- Regex: '^<[^Q][^>]*>'
+  Priority: 10
+#  Qt
+- Regex: '^<Q[^>]*>'
+  Priority: 20
+#  Third party
+- Regex: '^<(gtest|spdlog|asio)/.*>'
+  Priority: 30
+#  Project modules
+- Regex: '^"(common|core)/.*"'
+  Priority: 40
+#  Others local
+- Regex: '^".*"'
+  Priority: 50

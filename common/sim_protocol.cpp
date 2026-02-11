@@ -2,8 +2,7 @@
 
 namespace SimProtocol {
 
-QByteArray buildPacket(uint32_t src, uint32_t dst,
-                       SimMessageType type,
+QByteArray buildPacket(uint32_t src, uint32_t dst, SimMessageType type,
                        const QByteArray& payload)
 {
     QByteArray packet;
@@ -74,4 +73,4 @@ bool DecodedPacket::isForHub() const
     return isValid && (dstId == NetConfig::HUB_ID);
 }
 
-} // namespace SimProtocol
+}  // namespace SimProtocol

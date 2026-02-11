@@ -1,10 +1,10 @@
-#include "mainwindow.h"
+#include <controller/simulation_controller.hpp>
 
 #include <QApplication>
 
-#include <controller/simulation_controller.hpp>
+#include "mainwindow.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;

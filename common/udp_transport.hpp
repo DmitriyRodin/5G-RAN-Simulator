@@ -22,21 +22,20 @@ class UdpTransport : public QObject
 public:
     UdpTransport(QObject* parent = nullptr);
     sendingResult sendData(const QByteArray& data,
-                  const QHostAddress& receiver_ip,
-                  quint16 receiver_port);
+                           const QHostAddress& receiver_ip,
+                           quint16 receiver_port);
 
     bool init(quint16 listen_port);
     quint16 localPort() const;
 
 signals:
-    void dataReceived(const QByteArray& data,
-                      const QHostAddress& addr,
+    void dataReceived(const QByteArray& data, const QHostAddress& addr,
                       quint16 port);
 
 private:
     void readPendingDatagrams();
 
-    QUdpSocket* socket_= nullptr;
+    QUdpSocket* socket_ = nullptr;
 };
 
-#endif // UDP_TRANSPORT_H
+#endif  // UDP_TRANSPORT_H
