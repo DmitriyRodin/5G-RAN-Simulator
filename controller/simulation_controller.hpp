@@ -2,15 +2,16 @@
 #define SIMULATION_CONTROLLER_HPP
 
 #include <QList>
+
 #include "gnb/gnb_logic.hpp"
+#include "radio-hub/radio_hub.hpp"
 #include "ue/src/ue_logic.hpp"
-#include <radio-hub/radio_hub.hpp>
 
 class SimulationController : public QObject
 {
     Q_OBJECT
 public:
-    explicit SimulationController(QObject *parent = nullptr);
+    explicit SimulationController(QObject* parent = nullptr);
 
     void startSimulation();
 
@@ -29,4 +30,4 @@ private:
     const uint16_t Tracking_Area_Code = 100;
 };
 
-#endif // SIMULATION_CONTROLLER_HPP
+#endif  // SIMULATION_CONTROLLER_HPP

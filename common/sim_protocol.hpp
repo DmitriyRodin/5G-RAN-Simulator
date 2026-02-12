@@ -1,9 +1,10 @@
 #ifndef SIMPROTOCOL_HPP
 #define SIMPROTOCOL_HPP
 
+#include <cstdint>
+
 #include <QByteArray>
 #include <QDataStream>
-#include <cstdint>
 
 #include "types.hpp"
 
@@ -22,13 +23,11 @@ struct DecodedPacket {
     bool isFromHub() const;
 };
 
-QByteArray buildPacket(uint32_t src,
-                       uint32_t dst,
-                       SimMessageType type,
+QByteArray buildPacket(uint32_t src, uint32_t dst, SimMessageType type,
                        const QByteArray& payload = QByteArray());
 
 DecodedPacket parse(const QByteArray& data);
 
-} // namespace SimProtocol
+}  // namespace SimProtocol
 
-#endif // SIMPROTOCOL_HPP
+#endif  // SIMPROTOCOL_HPP

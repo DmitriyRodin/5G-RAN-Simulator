@@ -1,9 +1,7 @@
 #include "flow_logger.hpp"
 
-void FlowLogger::log(const EntityType type,
-                     const uint32_t from,
-                     const uint32_t to,
-                     const ProtocolMsgType msg_type,
+void FlowLogger::log(const EntityType type, const uint32_t from,
+                     const uint32_t to, const ProtocolMsgType msg_type,
                      const bool isIncoming)
 {
     QMutexLocker locker(&logMutex);
@@ -12,12 +10,12 @@ void FlowLogger::log(const EntityType type,
     QString msgName = msgTypeToString(msg_type);
 
     qDebug().noquote() << QString("[%1#%2] %3 %4[%5]  :  %6")
-                            .arg(typeToString(type))
-                            .arg(formatId(from))
-                            .arg(direction)
-                            .arg(typeToString(getOppositeType(type)))
-                            .arg(formatId(to))
-                            .arg(msgName);
+                              .arg(typeToString(type))
+                              .arg(formatId(from))
+                              .arg(direction)
+                              .arg(typeToString(getOppositeType(type)))
+                              .arg(formatId(to))
+                              .arg(msgName);
 }
 
 QString FlowLogger::formatId(uint32_t id)
@@ -34,7 +32,7 @@ QString FlowLogger::formatId(uint32_t id)
 
 QString FlowLogger::msgTypeToString(const ProtocolMsgType msg_type)
 {
-    switch(msg_type) {
+    switch (msg_type) {
         case ProtocolMsgType::UserPlaneData:
             return "DATA: User Plane Payload";
 

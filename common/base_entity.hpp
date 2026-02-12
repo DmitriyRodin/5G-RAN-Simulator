@@ -5,13 +5,14 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QUdpSocket>
 #include <QPoint>
+#include <QUdpSocket>
 
-#include <common/types.hpp>
-#include <common/udp_transport.hpp>
+#include "common/types.hpp"
+#include "common/udp_transport.hpp"
 
-class BaseEntity: public QObject {
+class BaseEntity : public QObject
+{
     Q_OBJECT
 public:
     BaseEntity(uint32_t id, const EntityType& type, QObject* parent = nullptr);
@@ -21,7 +22,7 @@ public:
     virtual void run() = 0;
     bool setupNetwork(quint16 port);
     void registerAtHub(const QHostAddress& hub_address, quint16 hub_port);
-    void handleRegistrationResponse(QDataStream &ds);
+    void handleRegistrationResponse(QDataStream& ds);
 
     EntityType getType();
     quint16 localPort() const;
@@ -35,8 +36,7 @@ signals:
     void registrationAtRadioHubConfirmed();
 
 protected:
-    void sendSimData(ProtocolMsgType protoType,
-                     const QByteArray& payload,
+    void sendSimData(ProtocolMsgType protoType, const QByteArray& payload,
                      uint32_t targetId);
 
     uint32_t id_;
@@ -52,13 +52,12 @@ protected:
     double tx_power_dbm_;
 
     virtual void onProtocolMessageReceived(uint32_t source_id,
-                                          ProtocolMsgType type,
-                                          const QByteArray &payload) = 0;
+                                           ProtocolMsgType type,
+                                           const QByteArray& payload) = 0;
 
 public slots:
-    void handleIncomingRawData(const QByteArray& data,
-                               const QHostAddress& addr,
+    void handleIncomingRawData(const QByteArray& data, const QHostAddress& addr,
                                quint16 port);
 };
 
-#endif // BASE_ENTITY_HPP
+#endif  // BASE_ENTITY_HPP
