@@ -46,11 +46,9 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
         case ProtocolMsgType::RrcSetupRequest:
             handleRrcSetupRequest(ue_id, payload);
             break;
-
         case ProtocolMsgType::MeasurementReport:
             handleMeasurementReport(ue_id, payload);
             break;
-
         case ProtocolMsgType::UserPlaneData:
             handleUeData(ue_id, payload);
             break;
@@ -62,9 +60,10 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
             break;
         case ProtocolMsgType::RrcSetupComplete:
             handleRrcSetupComplete(ue_id, payload);
+            break;
         default:
             qDebug() << "[gNB] Unhandled protocol type:"
-                     << static_cast<int>(type);
+                     << static_cast<uint8_t>(type);
     }
 }
 
@@ -87,12 +86,6 @@ void GnbLogic::sendBroadcastInfo()
 
 void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)
 {
-    qDebug() << QString(
-                    "[gNB %1] <--- Msg1 (RACH Preamble) "
-                    "received from UE %2.")
-                    .arg(id_)
-                    .arg(ueId);
-
     QDataStream in(payload);
     in.setByteOrder(QDataStream::BigEndian);
     uint16_t ra_rnti;
