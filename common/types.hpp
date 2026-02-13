@@ -187,4 +187,33 @@ enum class Status : uint8_t {
 };
 }  // namespace RrcConfig
 
+enum class RrcReleaseCause : uint8_t {
+    Other = 0,
+    UserInactivity = 1,
+    RrcConnectionFailure = 2,
+    LoadBalancing = 3,
+    CellReselection = 4,
+    VoiceFallback = 5
+};
+
+inline QString toString(RrcReleaseCause cause)
+{
+    switch (cause) {
+        case RrcReleaseCause::Other:
+            return "Other";
+        case RrcReleaseCause::UserInactivity:
+            return "UserInactivity";
+        case RrcReleaseCause::RrcConnectionFailure:
+            return "RrcConnectionFailure";
+        case RrcReleaseCause::LoadBalancing:
+            return "LoadBalancing";
+        case RrcReleaseCause::CellReselection:
+            return "CellReselection";
+        case RrcReleaseCause::VoiceFallback:
+            return "VoiceFallback";
+        default:
+            return "Unknown";
+    }
+}
+
 #endif  // TYPES_HPP

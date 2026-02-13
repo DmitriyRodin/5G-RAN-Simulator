@@ -36,6 +36,7 @@ private:
     void handleRegistrationRequest(uint32_t ue_id, const QByteArray& payload);
     void handleMeasurementReport(uint32_t ue_id, const QByteArray& payload);
     void triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id);
+    void sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause);
 
     QTimer* main_timer_ = nullptr;
     std::chrono::steady_clock::time_point last_broadcast_;

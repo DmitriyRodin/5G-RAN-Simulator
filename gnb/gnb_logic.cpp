@@ -35,6 +35,18 @@ void GnbLogic::onTick()
         sendBroadcastInfo();
         last_broadcast_ = now;
     }
+
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QMutableMapIterator<uint32_t, UeContext> it(ue_contexts_);
+    while (it.hasNext()) {
+        it.next();
+        if (it.value().state == UeRrcState::RRC_CONNECTED) {
+            if (it.value().last_activity.secsTo(currentTime) > 30) {
+                qDebug() << "[gNB] Inactivity timeout for UE" << it.key();
+                sendRrcRelease(it.key(), RrcReleaseCause::UserInactivity);
+            }
+        }
+    }
 }
 
 void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
@@ -319,4 +331,23 @@ void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
                     .arg(ue_id)
                     .arg(ctx.crnti)
                     .arg(selected_plmn);
+}
+
+void GnbLogic::sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause)
+{
+    if (!ue_contexts_.contains(ue_id)) return;
+
+    QByteArray payload;
+    QDataStream ds(&payload, QIODevice::WriteOnly);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    ds << static_cast<uint8_t>(cause);
+
+    qDebug() << QString("[gNB %1] ---> RRC Release to UE %2. Cause: %3")
+                    .arg(id_)
+                    .arg(ue_id)
+                    .arg(static_cast<int>(cause));
+
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcRelease, false);
+    sendSimData(ProtocolMsgType::RrcRelease, payload, ue_id);
 }
