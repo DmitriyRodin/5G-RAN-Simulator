@@ -59,7 +59,7 @@ void RadioHub::handleRegistration(const uint32_t node_id,
         reg_status = HubResponse::REG_ACCEPTED;
     }
 
-    QByteArray(response);
+    QByteArray response;
     QDataStream ds(&response, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
     ds << NetConfig::HUB_ID << node_id

@@ -60,7 +60,7 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,
             break;
 
         case ProtocolMsgType::RrcRelease:
-            handleRrcRelease(gnb_id);
+            handleRrcRelease(gnb_id, payload);
             break;
 
         case ProtocolMsgType::RegistrationAccept:
@@ -235,9 +235,6 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
 
 void UeLogic::sendRrcSetupComplete(uint32_t gnb_id)
 {
-    FlowLogger::log(type_, id_, target_gnb_id_,
-                    ProtocolMsgType::RrcSetupComplete, true);
-
     QByteArray payload;
     QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
@@ -251,9 +248,10 @@ void UeLogic::sendRrcSetupComplete(uint32_t gnb_id)
     sendSimData(ProtocolMsgType::RrcSetupComplete, payload, gnb_id);
 }
 
-void UeLogic::handleRrcRelease(uint32_t gnb_id)
+void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
 {
-    FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcSetup,
+    Q_UNUSED(payload);
+    FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcRelease,
                     true);
     if (gnb_id != target_gnb_id_) {
         return;

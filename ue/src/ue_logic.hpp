@@ -33,7 +33,7 @@ private:
     void handleRrcReconfiguration(const QByteArray& payload);
 
     void sendRrcSetupRequest(uint32_t gnb_id);
-    void handleRrcRelease(uint32_t gnb_id);
+    void handleRrcRelease(uint32_t gnb_id, const QByteArray& payload);
     void handleRrcSetup(uint32_t gnb_id, const QByteArray& payload);
     void sendRrcSetupComplete(uint32_t gnb_id);
 
