@@ -14,6 +14,8 @@ UeLogic::UeLogic(uint32_t id, QObject* parent)
     , state_(UeRrcState::DETACHED)
     , target_gnb_id_(0)
     , crnti_(0)
+    , last_rach_ra_rnti_(0)
+    , sent_msg3_identity_(0)
 {
     qDebug() << "[UE #" << id_
              << "] Created. "
@@ -24,23 +26,54 @@ UeLogic::UeLogic(uint32_t id, QObject* parent)
     connect(timer_, &QTimer::timeout, this, &UeLogic::onTick);
     last_report_time_ = std::chrono::steady_clock::now();
     connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,
-            &UeLogic::searchingForCell);
+            &UeLogic::onRegistrationConfirmed);
 }
 
 void UeLogic::run()
 {
+    if (timer_->isActive()) {
+        return;
+    }
     qDebug() << "UE #" << id_ << " started";
     timer_->start();
 }
 
+void UeLogic::resetSessionContext()
+{
+    target_gnb_id_ = 0;
+    crnti_ = 0;
+    last_rach_ra_rnti_ = 0;
+    sent_msg3_identity_ = 0;
+    last_report_time_ = std::chrono::steady_clock::now();
+}
+
+void UeLogic::onRegistrationConfirmed()
+{
+    qInfo() << QString(
+                   "[UE %1] L1/L2: Registered in RadioHub (Power On Success)")
+                   .arg(id_);
+
+    searchingForCell();
+}
+
 void UeLogic::searchingForCell()
 {
-    state_ = UeRrcState::SEARCHING_FOR_CELL;
+    resetSessionContext();
+    state_ = UeRrcState::DETACHED;
 
-    target_gnb_id_ = 0;
-    qDebug() << "[UE #" << id_
-             << "] Registered in Hub. "
-                " State: SEARCHING_FOR_CELL";
+    const int scan_delay = 2000;
+
+    qDebug() << QString(
+                    "[UE %1] Connection lost/released. Waiting %2ms for "
+                    "frequency scan...")
+                    .arg(id_)
+                    .arg(scan_delay);
+
+    QTimer::singleShot(scan_delay, this, [this]() {
+        state_ = UeRrcState::SEARCHING_FOR_CELL;
+        qDebug() << QString("[UE %1] Receiver active. Listening for SIB1...")
+                        .arg(id_);
+    });
 }
 
 void UeLogic::onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,
@@ -72,12 +105,7 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,
             break;
 
         case ProtocolMsgType::UserPlaneData: {
-            QDataStream ds(payload);
-            uint32_t ue_sender;
-            QString text;
-            ds >> ue_sender >> text;
-            qDebug() << "[UE #" << id_ << "] received from UE #" << ue_sender
-                     << " a message: " << text;
+            handleUserPlaneData(payload);
             break;
         }
 
@@ -97,8 +125,8 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
     qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
     // Maybe: CHECK signal level (RSRP)
     target_gnb_id_ = gnb_id;
-
     state_ = UeRrcState::RRC_IDLE;
+
     qDebug() << QString("[UE %1] Camped on Cell #%2. State: RRC_IDLE")
                     .arg(id_)
                     .arg(gnb_id);
@@ -156,11 +184,10 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
 
     FlowLogger::log(type_, id_, gnb_id, ProtocolMsgType::Rar, true);
 
-    qDebug()
-        << QString(
-               "7777 [UE %1] <--- Msg2 (RAR) received. Assigned T-CRNTI: %2")
-               .arg(id_)
-               .arg(crnti_);
+    qDebug() << QString(
+                    "[UE %1] <--- Msg2 (RAR) received. Assigned T-CRNTI: %2")
+                    .arg(id_)
+                    .arg(crnti_);
 
     sendRrcSetupRequest(gnb_id);
 }
@@ -250,18 +277,34 @@ void UeLogic::sendRrcSetupComplete(uint32_t gnb_id)
 
 void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
 {
-    Q_UNUSED(payload);
-    FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcRelease,
-                    true);
     if (gnb_id != target_gnb_id_) {
+        qWarning() << "[UE #" << id_
+                   << "] Received RRC Release from unknown gNB" << gnb_id;
         return;
     }
 
-    qDebug() << "[UE #" << id_
-             << "] RRC Release received. "
-                "Moving back to IDLE/SEARCHING...";
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+    uint8_t cause_raw;
+    ds >> cause_raw;
+    RrcReleaseCause cause = static_cast<RrcReleaseCause>(cause_raw);
+
+    qDebug() << QString("[UE %1] <--- RRC Release received. Cause: %2 (%3)")
+                    .arg(id_)
+                    .arg(static_cast<int>(cause))
+                    .arg(toString(cause));
+
+    resetSessionContext();
+
     state_ = UeRrcState::RRC_IDLE;
-    crnti_ = 0;
+
+    FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcRelease,
+                    true);
+
+    qDebug() << QString("[UE %1] Connection closed. Restarting lifecycle...")
+                    .arg(id_);
+
+    searchingForCell();
 }
 
 void UeLogic::sendRegistrationRequest()
@@ -371,4 +414,18 @@ void UeLogic::sendChatMessage(uint32_t target_ue_id, const QString& text)
              << target_ue_id << ":" << text;
 
     sendSimData(ProtocolMsgType::UserPlaneData, data, target_gnb_id_);
+}
+
+void UeLogic::handleUserPlaneData(const QByteArray& payload)
+{
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+    uint32_t ue_sender;
+    QString text;
+    ds >> ue_sender >> text;
+
+    qDebug() << QString("[UE %1] [CHAT] From UE %2: %3")
+                    .arg(id_)
+                    .arg(ue_sender)
+                    .arg(text);
 }
