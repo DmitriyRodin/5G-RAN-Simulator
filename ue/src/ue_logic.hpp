@@ -23,6 +23,7 @@ protected:
 
 private slots:
     void onTick();
+    void onRegistrationConfirmed();
 
 private:
     void handleSib1(uint32_t gnb_id, const QByteArray& payload);
@@ -39,6 +40,10 @@ private:
 
     void sendRegistrationRequest();
     void sendMeasurementReport();
+
+    void resetSessionContext();
+
+    void handleUserPlaneData(const QByteArray& payload);
 
     UeRrcState state_;
     uint32_t target_gnb_id_;
