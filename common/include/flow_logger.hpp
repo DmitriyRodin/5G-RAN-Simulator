@@ -6,7 +6,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 
-#include "common/types.hpp"
+#include "types.hpp"
 
 static QMutex logMutex;
 

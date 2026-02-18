@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QRandomGenerator>
 
-#include "common/logging/flow_logger.hpp"
+#include "flow_logger.hpp"
 
 GnbLogic::GnbLogic(uint32_t id, QObject* parent)
     : BaseEntity(id, EntityType::GNB, parent)

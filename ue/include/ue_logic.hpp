@@ -6,7 +6,7 @@
 #include <QHash>
 #include <QTimer>
 
-#include "common/base_entity.hpp"
+#include "base_entity.hpp"
 
 class UeLogic : public BaseEntity
 {

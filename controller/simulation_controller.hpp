@@ -3,9 +3,9 @@
 
 #include <QList>
 
-#include "gnb/gnb_logic.hpp"
-#include "radio-hub/radio_hub.hpp"
-#include "ue/src/ue_logic.hpp"
+#include "gnb_logic.hpp"
+#include "radio_hub.hpp"
+#include "ue_logic.hpp"
 
 class SimulationController : public QObject
 {

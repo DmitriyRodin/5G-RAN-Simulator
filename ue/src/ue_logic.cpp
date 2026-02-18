@@ -7,7 +7,7 @@
 #include <QJsonObject>
 #include <QRandomGenerator>
 
-#include "common/logging/flow_logger.hpp"
+#include "flow_logger.hpp"
 
 UeLogic::UeLogic(uint32_t id, QObject* parent)
     : BaseEntity(id, EntityType::UE, parent)

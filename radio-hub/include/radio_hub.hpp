@@ -4,8 +4,8 @@
 #include <QMap>
 #include <QObject>
 
-#include "common/sim_protocol.hpp"
-#include "common/udp_transport.hpp"
+#include "sim_protocol.hpp"
+#include "udp_transport.hpp"
 
 struct NodeInfo {
     uint32_t id;

@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QNetworkDatagram>
 
-#include "common/sim_protocol.hpp"
+#include "sim_protocol.hpp"
 
 BaseEntity::BaseEntity(uint32_t id, const EntityType& type, QObject* parent)
     : QObject(parent)
