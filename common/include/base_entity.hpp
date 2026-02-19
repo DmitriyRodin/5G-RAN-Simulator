@@ -8,8 +8,8 @@
 #include <QPoint>
 #include <QUdpSocket>
 
-#include "common/types.hpp"
-#include "common/udp_transport.hpp"
+#include "types.hpp"
+#include "udp_transport.hpp"
 
 class BaseEntity : public QObject
 {

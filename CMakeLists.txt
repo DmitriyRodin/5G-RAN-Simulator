@@ -19,28 +19,17 @@ set(PROJECT_SOURCES
         mainwindow.ui
 )
 
+add_subdirectory(ue)
+add_subdirectory(gnb)
+add_subdirectory(common)
+add_subdirectory(radio-hub)
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(5G-RAN-Simulator
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        common/types.hpp
-        common/types.cpp
-        common/udp_transport.hpp
-        common/udp_transport.cpp
-        common/base_entity.hpp
-        common/base_entity.cpp
-        common/sim_protocol.hpp
-        common/sim_protocol.cpp
-        gnb/gnb_logic.hpp
-        gnb/gnb_logic.cpp
-        ue/src/ue_logic.hpp
-        ue/src/ue_logic.cpp
-        radio-hub/radio_hub.hpp
-        radio-hub/radio_hub.cpp
         controller/simulation_controller.hpp
         controller/simulation_controller.cpp
-        common/logging/flow_logger.hpp
-        common/logging/flow_logger.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -62,7 +51,9 @@ endif()
 
 target_link_libraries(5G-RAN-Simulator PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
-    Qt6::Network
+    ue_lib
+    gnb_lib
+    radiohub_lib
 )
 
 target_include_directories(5G-RAN-Simulator PRIVATE

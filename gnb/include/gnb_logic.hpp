@@ -3,7 +3,7 @@
 
 #include <QTimer>
 
-#include "common/base_entity.hpp"
+#include "base_entity.hpp"
 
 struct GnbCellConfig {
     uint16_t tac = 100;  // Tracking Area Code
