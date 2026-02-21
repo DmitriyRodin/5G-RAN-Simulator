@@ -36,8 +36,8 @@ signals:
     void registrationAtRadioHubConfirmed();
 
 protected:
-    void sendSimData(ProtocolMsgType protoType, const QByteArray& payload,
-                     uint32_t targetId);
+    virtual void sendSimData(ProtocolMsgType protoType,
+                             const QByteArray& payload, uint32_t targetId);
 
     uint32_t id_;
     EntityType type_;

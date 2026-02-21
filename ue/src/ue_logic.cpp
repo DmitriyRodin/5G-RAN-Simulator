@@ -169,14 +169,13 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
 
     in >> rx_ra_rnti >> temp_c_rnti >> timing_advance;
 
-    uint16_t expected_ra_rnti = static_cast<uint16_t>(id_ % 65535);
     if (rx_ra_rnti != last_rach_ra_rnti_) {
         qDebug() << QString(
                         "[UE %1] RAR ignored: RA-RNTI "
                         "mismatch (Got: %2, Expected: %3)")
                         .arg(id_)
                         .arg(rx_ra_rnti)
-                        .arg(expected_ra_rnti);
+                        .arg(last_rach_ra_rnti_);
         return;
     }
 
@@ -331,6 +330,8 @@ void UeLogic::handleRegistrationAccept(const QByteArray& payload)
 
     QString message;
     ds >> message;
+
+    is_registered_ = true;
 
     qDebug() << "[UE #" << id_
              << "] NAS Registration Accepted! Network says:" << message;

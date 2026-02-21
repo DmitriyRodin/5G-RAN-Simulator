@@ -8,6 +8,10 @@
 
 #include "base_entity.hpp"
 
+#ifdef UNIT_TESTS
+class UeLogicTestWrapper;
+#endif
+
 class UeLogic : public BaseEntity
 {
     Q_OBJECT
@@ -45,6 +49,7 @@ private:
 
     void handleUserPlaneData(const QByteArray& payload);
 
+protected:
     UeRrcState state_;
     uint32_t target_gnb_id_;
     /* Cell Radio Network Temporary Identifier (C-RNTI).
@@ -59,6 +64,10 @@ private:
     const std::chrono::milliseconds report_interval_{500};
 
     QList<uint32_t> peers_;
+
+#ifdef UNIT_TESTS
+    friend class UeLogicTestWrapper;
+#endif
 };
 
 #endif  // UE_LOGIC_HPP
