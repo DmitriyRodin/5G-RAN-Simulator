@@ -26,3 +26,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ue_main.cpp")
     add_executable(ue_app src/ue_main.cpp)
     target_link_libraries(ue_app PRIVATE ue_lib)
 endif()
+
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
