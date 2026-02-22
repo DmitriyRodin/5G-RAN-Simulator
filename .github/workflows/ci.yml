@@ -1,0 +1,41 @@
+name: 5G-RAN-Simulator CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            build-essential \
+            qt6-base-dev \
+            googletest \
+            libgtest-dev \
+            clang-format
+
+      - name: Check Code Formatting
+        run: |
+          find . -regex '.*\.\(cpp\|hpp\|h\)' -not -path "*/build*/*" | xargs --no-run-if-empty clang-format --dry-run --Werror
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+
+      - name: Build Project
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run UE Logic Tests
+        run: |
+          cd build/ue/tests
+          ./ue_tests
