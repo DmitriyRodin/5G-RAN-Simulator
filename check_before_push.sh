@@ -17,12 +17,37 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "Step 3: Running tests"
-if [ -f "build_test/ue/tests/ue_tests" ]; then
-    cd build_test/ue/tests && ./ue_tests
+echo "Step 3: Running all tests"
+
+ANY_FAILURE=0
+
+echo "---------------------------------------"
+echo "Let's start gNB tests:"
+if [ -f "build_test/gnb/tests/gnb_tests" ]; then
+    ./build_test/gnb/tests/gnb_tests
+    if [ $? -ne 0 ]; then ANY_FAILURE=1; fi
 else
-    echo "Oops: received an error: Test binary 'ue_tests' not found in build_test/ue/tests/"
-    exit 1
+    echo "Oops: received an error: gnb_tests binary not found!"
+    ANY_FAILURE=1
 fi
 
-echo "Cheking is finish. Fin! Go and push it!"
+echo ""
+echo "---------------------------------------"
+echo "And now let's start UE tests:"
+if [ -f "build_test/ue/tests/ue_tests" ]; then
+    ./build_test/ue/tests/ue_tests
+    if [ $? -ne 0 ]; then ANY_FAILURE=1; fi
+else
+    echo "Oops: received an error: ue_tests binary not found!"
+    ANY_FAILURE=1
+fi
+
+echo "---------------------------------------"
+
+if [ $ANY_FAILURE -ne 0 ]; then
+    echo "❌ SOME TESTS FAILED. Check the logs above."
+    exit 1
+else
+    echo "✅ ALL TESTS PASSED! Cheking is finish. Fin! Go and push it!"
+    exit 0
+fi

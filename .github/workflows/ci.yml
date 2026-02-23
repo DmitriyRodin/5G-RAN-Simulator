@@ -21,13 +21,23 @@ jobs:
             cmake \
             build-essential \
             qt6-base-dev \
-            googletest \
+            google-mock \
             libgtest-dev \
             clang-format
 
       - name: Check Code Formatting
         run: |
           find . -regex '.*\.\(cpp\|hpp\|h\)' -not -path "*/build*/*" | xargs --no-run-if-empty clang-format --dry-run --Werror
+
+
+      - name: Build and Install GTest/GMock
+        run: |
+          cd /usr/src/googletest
+          sudo mkdir -p build
+          cd build
+          sudo cmake ..
+          sudo make
+          sudo make install
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
