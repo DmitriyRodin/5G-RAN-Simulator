@@ -26,3 +26,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gnb_main.cpp")
     add_executable(gnb_app src/gnb_main.cpp)
     target_link_libraries(gnb_app PRIVATE gnb_lib)
 endif()
+
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
