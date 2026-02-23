@@ -73,6 +73,8 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
         case ProtocolMsgType::RrcSetupComplete:
             handleRrcSetupComplete(ue_id, payload);
             break;
+        case ProtocolMsgType::RegistrationRequest:
+            handleRegistrationRequest(ue_id, payload);
         default:
             qDebug() << "[gNB] Unhandled protocol type:"
                      << static_cast<uint8_t>(type);
