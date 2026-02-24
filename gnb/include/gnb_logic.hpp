@@ -37,7 +37,7 @@ protected:
 
 private:
     void handleRachPreamble(uint32_t ueId, const QByteArray& payload);
-    void handleUeData(uint32_t ue_id, const QByteArray& payload);
+    void handleUeData(uint32_t sender_ue_id, const QByteArray& payload);
     void handleRrcSetupRequest(uint32_t ueId, const QByteArray& payload);
     void handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload);
     void handleMeasurementReport(uint32_t ue_id, const QByteArray& payload);

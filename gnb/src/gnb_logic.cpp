@@ -154,9 +154,46 @@ void GnbLogic::updateUeContext(uint32_t ueId, uint16_t crnti)
     }
 }
 
-void GnbLogic::handleUeData(uint32_t ue_id, const QByteArray& payload)
+void GnbLogic::handleUeData(uint32_t sender_ue_id, const QByteArray& payload)
 {
-    // HANDLE UE data logic
+    if (!ue_contexts_.contains(sender_ue_id)) {
+        qWarning() << "[gNB] Data from unknown UE:" << sender_ue_id;
+        return;
+    }
+
+    QDataStream in_ds(payload);
+    in_ds.setByteOrder(QDataStream::BigEndian);
+
+    uint32_t target_ue_id;
+    QString chat_text;
+    in_ds >> target_ue_id >> chat_text;
+
+    if (!ue_contexts_.contains(target_ue_id)) {
+        qWarning() << QString(
+                          "[gNB] UE %1 tries to message offline/unknown UE %2")
+                          .arg(sender_ue_id)
+                          .arg(target_ue_id);
+        return;
+    }
+
+    if (ue_contexts_[target_ue_id].state != UeRrcState::RRC_CONNECTED) {
+        qWarning() << "[gNB] Target UE" << target_ue_id
+                   << "is not in CONNECTED state";
+        return;
+    }
+
+    QByteArray outbound_data;
+    QDataStream out_ds(&outbound_data, QIODevice::WriteOnly);
+    out_ds.setByteOrder(QDataStream::BigEndian);
+
+    out_ds << sender_ue_id << chat_text;
+
+    qDebug() << QString("[gNB] Relay Chat: UE %1 -> UE %2 | Text: %3")
+                    .arg(sender_ue_id)
+                    .arg(target_ue_id)
+                    .arg(chat_text);
+
+    sendSimData(ProtocolMsgType::UserPlaneData, outbound_data, target_ue_id);
 }
 
 void GnbLogic::handleRegistrationRequest(uint32_t ue_id,
