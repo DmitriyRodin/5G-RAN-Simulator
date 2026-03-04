@@ -19,6 +19,9 @@ public:
     explicit UeLogic(uint32_t id, QObject* parent = nullptr);
     void run() override;
     void sendChatMessage(uint32_t target_ue_id, const QString& text);
+    bool isConnected() const;
+    QString stateString() const;
+    uint32_t getTargetGnb() const;
 
 protected:
     void onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,

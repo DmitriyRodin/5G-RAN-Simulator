@@ -31,6 +31,7 @@ public:
     QPointF position() const;
     void setTxPower(double power);
     double txPower() const;
+    uint32_t getId() const;
 
 signals:
     void registrationAtRadioHubConfirmed();
