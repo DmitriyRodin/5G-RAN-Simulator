@@ -5,8 +5,9 @@
 
 #include "flow_logger.hpp"
 
-GnbLogic::GnbLogic(uint32_t id, QObject* parent)
+GnbLogic::GnbLogic(uint32_t id, uint16_t radius, QObject* parent)
     : BaseEntity(id, EntityType::GNB, parent)
+    , radius_(radius)
 {
     main_timer_ = new QTimer(this);
     main_timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
@@ -25,6 +26,16 @@ void GnbLogic::run()
 {
     qDebug() << "GNB #" << id_ << " timer starts";
     main_timer_->start();
+}
+
+uint32_t GnbLogic::getConnectedUeCount() const
+{
+    return static_cast<uint32_t>(ue_contexts_.size());
+}
+
+uint16_t GnbLogic::getRadius() const
+{
+    return radius_;
 }
 
 void GnbLogic::onTick()

@@ -192,3 +192,8 @@ double BaseEntity::txPower() const
 {
     return tx_power_dbm_;
 }
+
+uint32_t BaseEntity::getId() const
+{
+    return id_;
+}

@@ -417,6 +417,21 @@ void UeLogic::sendChatMessage(uint32_t target_ue_id, const QString& text)
     sendSimData(ProtocolMsgType::UserPlaneData, data, target_gnb_id_);
 }
 
+bool UeLogic::isConnected() const
+{
+    return state_ == UeRrcState::RRC_CONNECTED;
+}
+
+QString UeLogic::stateString() const
+{
+    return toString(state_);
+}
+
+uint32_t UeLogic::getTargetGnb() const
+{
+    return target_gnb_id_;
+}
+
 void UeLogic::handleUserPlaneData(const QByteArray& payload)
 {
     QDataStream ds(payload);
