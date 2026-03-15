@@ -53,7 +53,7 @@ class MockGnbLogic : public GnbLogic
 {
 public:
     MockGnbLogic(uint32_t id)
-        : GnbLogic(id)
+        : GnbLogic(id, NetConfig::GNB_DEFAULT_COVERAGE_RADIUS)
     {
     }
 

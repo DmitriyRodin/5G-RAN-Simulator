@@ -5,7 +5,7 @@
 
 #include "flow_logger.hpp"
 
-GnbLogic::GnbLogic(uint32_t id, uint16_t radius, QObject* parent)
+GnbLogic::GnbLogic(uint32_t id, double radius, QObject* parent)
     : BaseEntity(id, EntityType::GNB, parent)
     , radius_(radius)
 {
@@ -33,7 +33,7 @@ uint32_t GnbLogic::getConnectedUeCount() const
     return static_cast<uint32_t>(ue_contexts_.size());
 }
 
-uint16_t GnbLogic::getRadius() const
+double GnbLogic::getRadius() const
 {
     return radius_;
 }

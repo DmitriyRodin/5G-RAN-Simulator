@@ -5,6 +5,7 @@
 
 #include <QByteArray>
 #include <QDataStream>
+#include <QPoint>
 
 #include "types.hpp"
 
@@ -15,6 +16,7 @@ struct DecodedPacket {
     uint32_t dstId;
     SimMessageType type;
     QByteArray payload;
+    EntityType nodeType;
     bool isValid = false;
 
     bool isForMe(uint32_t myId) const;
@@ -23,10 +25,14 @@ struct DecodedPacket {
     bool isFromHub() const;
 };
 
-QByteArray buildPacket(uint32_t src, uint32_t dst, SimMessageType type,
+QByteArray buildPacket(uint32_t src, EntityType entity_type, uint32_t dst,
+                       SimMessageType type,
                        const QByteArray& payload = QByteArray());
 
 DecodedPacket parse(const QByteArray& data);
+
+QPointF getCoordinates(const QByteArray& payload);
+QByteArray writeCoordinates(const QPointF& position);
 
 }  // namespace SimProtocol
 
