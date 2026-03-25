@@ -72,13 +72,9 @@ void BaseEntity::registerAtHub(const QHostAddress& hub_address,
     hub_address_ = hub_address;
     hub_port_ = hub_port;
 
-    QByteArray packet;
-    QDataStream ds(&packet, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    const uint32_t sender_id = id_;
-    ds << sender_id << NetConfig::HUB_ID
-       << static_cast<uint8_t>(SimMessageType::Registration);
+    const QByteArray payload = SimProtocol::writeCoordinates(position_);
+    const QByteArray packet = SimProtocol::buildPacket(
+        id_, type_, NetConfig::HUB_ID, SimMessageType::Registration, payload);
 
     transport_->sendData(packet, hub_address_, hub_port_);
 }
@@ -110,7 +106,7 @@ void BaseEntity::sendSimData(ProtocolMsgType proto_type,
     protocolPayload.append(payload);
 
     QByteArray finalPacket = SimProtocol::buildPacket(
-        id_, target_id, SimMessageType::Data, protocolPayload);
+        id_, type_, target_id, SimMessageType::Data, protocolPayload);
 
     sendingResult result =
         transport_->sendData(finalPacket, hub_address_, hub_port_);
@@ -149,7 +145,9 @@ void BaseEntity::handleIncomingRawData(const QByteArray& data,
         }
 
         case SimMessageType::Data: {
-            if (decoded.payload.isEmpty()) return;
+            if (decoded.payload.isEmpty()) {
+                return;
+            }
 
             QDataStream ds(decoded.payload);
             ds.setByteOrder(QDataStream::BigEndian);

@@ -2,6 +2,7 @@
 
 #include <QDataStream>
 #include <QDebug>
+#include <QLine>
 
 RadioHub::RadioHub(quint16 listen_port, QObject* parent)
     : QObject(parent)
@@ -33,40 +34,82 @@ void RadioHub::onDataReceived(const QByteArray& raw_data,
     }
 
     if (packet.isBroadcast()) {
-        broadcastToAll(raw_data, packet.srcId);
+        broadcastFromGbn(raw_data, packet.srcId);
         return;
     }
 
-    forwardToNode(raw_data, packet.dstId);
+    forwardToNode(raw_data, packet.dstId, packet.srcId);
 }
 
 void RadioHub::handleRegistration(const uint32_t node_id,
                                   const QHostAddress& sender_ip,
-                                  quint16 sender_port)
+                                  quint16 sender_port, const EntityType type,
+                                  const QPointF& coordinates)
 {
     uint8_t reg_status = HubResponse::REG_DENIED;
 
     if (node_id == NetConfig::HUB_ID || node_id == NetConfig::BROADCAST_ID) {
         qWarning() << "Registration REJECTED: Invalid Reserved ID";
         reg_status = HubResponse::REG_DENIED;
-    } else if (nodes_.contains(node_id)) {
+    } else if (ues_.contains(node_id) || gnbs_.contains(node_id)) {
         qWarning() << "Registration stoped: the node with "
                       "this ID already registred";
         reg_status = HubResponse::REG_DENIED;
     } else {
-        nodes_[node_id] = {node_id, sender_ip, sender_port};
-        qDebug() << QString("[RadioHub] Node %1 registered").arg(node_id);
-        reg_status = HubResponse::REG_ACCEPTED;
+        switch (type) {
+            case EntityType::UE: {
+                ues_[node_id] = {node_id, EntityType::UE, sender_ip,
+                                 sender_port, coordinates};
+                qDebug() << QString("[RadioHub] UE %1 registered").arg(node_id);
+                reg_status = HubResponse::REG_ACCEPTED;
+                break;
+            }
+            case EntityType::GNB: {
+                gnbs_[node_id] = {
+                    node_id,
+                    EntityType::GNB,
+                    sender_ip,
+                    sender_port,
+                    coordinates,
+                    GnbParameters{NetConfig::GNB_DEFAULT_COVERAGE_RADIUS}};
+                qDebug()
+                    << QString("[RadioHub] GNB %1 registered").arg(node_id);
+                reg_status = HubResponse::REG_ACCEPTED;
+                break;
+            }
+            case EntityType::RadioHub: {
+                qWarning() << QString(
+                    "[RadioHub] Registration Error: Oops. Some other RadioHub "
+                    "tries "
+                    "to register, but we have only one RadioHub in our "
+                    "architecture");
+                break;
+            }
+            case EntityType::UNKNOWN: {
+                qWarning() << QString(
+                                  "[RadioHub] Registration REJECTED: Unknown "
+                                  "EntityType for ID %1")
+                                  .arg(node_id);
+                reg_status = HubResponse::REG_DENIED;
+                break;
+            }
+        }
     }
 
+    sendRegistrationResponse(node_id, reg_status, sender_ip, sender_port);
+}
+
+void RadioHub::sendRegistrationResponse(uint32_t node_id, uint8_t status,
+                                        const QHostAddress& ip, quint16 port)
+{
     QByteArray response;
     QDataStream ds(&response, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
-    ds << NetConfig::HUB_ID << node_id
-       << static_cast<uint8_t>(SimMessageType::RegistrationResponse)
-       << reg_status;
+    ds << NetConfig::HUB_ID << static_cast<uint8_t>(EntityType::RadioHub)
+       << node_id << static_cast<uint8_t>(SimMessageType::RegistrationResponse)
+       << status;
 
-    transport_->sendData(response, sender_ip, sender_port);
+    transport_->sendData(response, ip, port);
 }
 
 void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
@@ -75,11 +118,13 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
 {
     switch (packet.type) {
         case SimMessageType::Registration: {
-            handleRegistration(packet.srcId, sender_ip, sender_port);
+            handleRegistration(packet.srcId, sender_ip, sender_port,
+                               packet.nodeType,
+                               SimProtocol::getCoordinates(packet.payload));
             break;
         }
         case SimMessageType::Deregistration: {
-            handleDeregistration(packet.srcId);
+            handleDeregistration(packet.srcId, packet.nodeType);
             break;
         }
         default: {
@@ -88,45 +133,125 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
     }
 }
 
-void RadioHub::broadcastToAll(const QByteArray& raw_data, uint32_t src_id)
+void RadioHub::broadcastFromGbn(const QByteArray& raw_data, uint32_t src_id)
 {
-    uint32_t sent_count = 0;
-    for (const auto& node : nodes_) {
-        if (node.id == src_id) {
-            continue;
+    const NodeInfo* gnb = findNode(src_id);
+    if (!gnb || gnb->type != EntityType::GNB || !gnb->gnbData.has_value()) {
+        return;
+    }
+
+    const double radius = gnb->gnbData->radius;
+    QPointF gnbPos = gnb->position;
+
+    for (auto it = ues_.begin(); it != ues_.end(); ++it) {
+        const NodeInfo& ue = it.value();
+        const double distance = calculateDistance(gnbPos, ue.position);
+
+        if (distance <= radius) {
+            transport_->sendData(raw_data, ue.address, ue.port);
         }
-        transport_->sendData(raw_data, node.address, node.port);
-        ++sent_count;
-    }
-    qDebug() << QString(
-                    "[RadioHub] Broadcast from ID:%1 | "
-                    "Size:%2 bytes | Delivered to:%3 nodes")
-                    .arg(src_id)
-                    .arg(raw_data.size())
-                    .arg(sent_count);
-}
-
-void RadioHub::forwardToNode(const QByteArray& raw_data, uint32_t dst_id)
-{
-    auto it = nodes_.find(dst_id);
-    if (it != nodes_.end()) {
-        transport_->sendData(raw_data, it.value().address, it.value().port);
-    } else {
-        qWarning() << "[RadioHub]: destination node doesn't registred";
     }
 }
 
-void RadioHub::handleDeregistration(uint32_t src_id)
+void RadioHub::forwardToNode(const QByteArray& raw_data, const uint32_t dst_id,
+                             const uint32_t src_id)
 {
-    if (nodes_.remove(src_id) > 0) {
-        qDebug() << QString(
-                        "[RadioHub] Node %1 successfully "
-                        "deregistered and removed from the map.")
-                        .arg(src_id);
+    const NodeInfo* target = findNode(dst_id);
+    const NodeInfo* source = findNode(src_id);
+
+    if (!source) {
+        qWarning() << "[RadioHub] Forwarding FAILED: Source Node" << src_id
+                   << "not registered";
+        return;
+    }
+    if (!target) {
+        qWarning() << "[RadioHub] Forwarding FAILED: Destination Node" << dst_id
+                   << "not registered";
+        return;
+    }
+
+    if (areWithinCoverageArea(source, target)) {
+        transport_->sendData(raw_data, target->address, target->port);
+        qDebug() << "[RadioHub] Packet delivered from" << src_id << "to"
+                 << dst_id;
     } else {
-        qWarning() << QString(
-                          "[RadioHub] Attempted to deregister "
-                          "unknown Node %1.")
-                          .arg(src_id);
+        qDebug() << "[RadioHub] Packet LOST: Distance between " << src_id
+                 << " and " << dst_id << " exceeds coverage";
+    }
+}
+
+const NodeInfo* RadioHub::findNode(uint32_t id) const
+{
+    auto itUe = ues_.find(id);
+    if (itUe != ues_.end()) {
+        return &itUe.value();
+    }
+
+    auto itGnb = gnbs_.find(id);
+    if (itGnb != gnbs_.end()) {
+        return &itGnb.value();
+    }
+
+    return nullptr;
+}
+
+double RadioHub::calculateDistance(const QPointF& position_1,
+                                   const QPointF& position_2)
+{
+    return QLineF(position_1, position_2).length();
+}
+
+bool RadioHub::areWithinCoverageArea(const NodeInfo* source,
+                                     const NodeInfo* target)
+{
+    const double distance =
+        calculateDistance(source->position, target->position);
+
+    if (source->gnbData.has_value()) {
+        return distance <= source->gnbData->radius;
+    }
+
+    if (target->gnbData.has_value()) {
+        return distance <= target->gnbData->radius;
+    }
+
+    return false;
+}
+
+void RadioHub::handleDeregistration(uint32_t src_id, EntityType type)
+{
+    bool removed = false;
+    QString typeStr;
+
+    switch (type) {
+        case EntityType::UE:
+            removed = (ues_.remove(src_id) > 0);
+            typeStr = "UE";
+            break;
+
+        case EntityType::GNB:
+            removed = (gnbs_.remove(src_id) > 0);
+            typeStr = "gNB";
+            break;
+
+        default:
+            qWarning()
+                << "[RadioHub] Deregistration FAILED: Unknown EntityType for ID"
+                << src_id;
+            return;
+    }
+
+    if (removed) {
+        qDebug()
+            << QString(
+                   "[RadioHub] %1 %2 successfully deregistered and removed.")
+                   .arg(typeStr)
+                   .arg(src_id);
+    } else {
+        qWarning()
+            << QString(
+                   "[RadioHub] Attempted to deregister unknown %1 with ID %2.")
+                   .arg(typeStr)
+                   .arg(src_id);
     }
 }

@@ -32,7 +32,8 @@ void SimulationController::setupGnbStations()
 
     for (int i = 0; i < GNB_COUNT; ++i) {
         auto gnb =
-            std::make_shared<GnbLogic>(i + NetConfig::GNB_ID_START, 1200);
+            std::make_shared<GnbLogic>(i + NetConfig::GNB_ID_START,
+                                       NetConfig::GNB_DEFAULT_COVERAGE_RADIUS);
 
         gnb->setPosition(gnb_positions[i]);
         gnb->setTxPower(43.0);

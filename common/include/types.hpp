@@ -5,9 +5,10 @@
 #include <QDebug>
 #include <QHostAddress>
 
-enum class EntityType {
+enum class EntityType : uint8_t {
     UE,
     GNB,
+    RadioHub,
     UNKNOWN = 255
 };
 
@@ -109,6 +110,8 @@ const uint32_t BROADCAST_ID = 0xFFFFFFFF;
 
 constexpr uint32_t GNB_ID_START = 1;
 constexpr uint32_t UE_ID_START = 500;
+
+const double GNB_DEFAULT_COVERAGE_RADIUS = 1200;
 }  // namespace NetConfig
 
 namespace SimConfig {

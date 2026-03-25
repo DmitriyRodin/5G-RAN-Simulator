@@ -21,11 +21,11 @@ class GnbLogic : public BaseEntity
 {
     Q_OBJECT
 public:
-    GnbLogic(uint32_t id, uint16_t radius = 300, QObject* parent = nullptr);
+    GnbLogic(uint32_t id, double radius, QObject* parent = nullptr);
     void setCellConfig(const GnbCellConfig& config);
     void run();
     uint32_t getConnectedUeCount() const;
-    uint16_t getRadius() const;
+    double getRadius() const;
 
 protected slots:
     void onTick();
@@ -53,7 +53,7 @@ private:
     std::chrono::steady_clock::time_point last_broadcast_;
     const std::chrono::milliseconds broadcast_interval_{200};
     uint16_t next_crnti_counter_ = 1000;
-    uint16_t radius_;
+    double radius_;
 
 protected:
     QMap<uint32_t, UeContext> ue_contexts_;

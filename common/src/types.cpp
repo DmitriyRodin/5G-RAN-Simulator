@@ -54,7 +54,7 @@ QString toString(UeRrcState ue_rrc_state)
         case UeRrcState::DETACHED:
             return "DETACHED";
         case UeRrcState::SEARCHING_FOR_CELL:
-            return "SEARCHING_FOR_CELL";
+            return "SEARCHING_CELL";
         case UeRrcState::RRC_IDLE:
             return "RRC_IDLE";
         case UeRrcState::RRC_CONNECTING:
