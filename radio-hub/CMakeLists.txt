@@ -15,10 +15,12 @@ target_include_directories(radiohub_lib PUBLIC
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
+    Network
 )
 
 target_link_libraries(radiohub_lib PUBLIC
     Qt6::Core
+    Qt6::Network
     common_lib
 )
 
