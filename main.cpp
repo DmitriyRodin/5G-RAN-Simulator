@@ -1,7 +1,7 @@
 #include <QApplication>
 
-#include "controller/simulation_controller.hpp"
 #include "mainwindow.h"
+#include "simulation_controller.hpp"
 
 int main(int argc, char* argv[])
 {
