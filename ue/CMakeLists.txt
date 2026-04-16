@@ -15,10 +15,12 @@ target_include_directories(ue_lib PUBLIC
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
+    Network
 )
 
 target_link_libraries(ue_lib PUBLIC
     Qt6::Core
+    Qt6::Network
     common_lib
 )
 
