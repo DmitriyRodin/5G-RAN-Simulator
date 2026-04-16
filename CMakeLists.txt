@@ -23,39 +23,20 @@ add_subdirectory(ue)
 add_subdirectory(gnb)
 add_subdirectory(common)
 add_subdirectory(radio-hub)
+add_subdirectory(controller)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(5G-RAN-Simulator
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        controller/simulation_controller.hpp
-        controller/simulation_controller.cpp
         map_widget.hpp
         map_widget.cpp
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET 5G-RAN-Simulator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(5G-RAN-Simulator SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(5G-RAN-Simulator
-            ${PROJECT_SOURCES}
-        )
-    endif()
 endif()
 
 target_link_libraries(5G-RAN-Simulator PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
-    ue_lib
-    gnb_lib
-    radiohub_lib
+    controller_lib
 )
 
 target_include_directories(5G-RAN-Simulator PRIVATE
@@ -83,6 +64,6 @@ install(TARGETS 5G-RAN-Simulator
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
+if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     qt_finalize_executable(5G-RAN-Simulator)
 endif()
