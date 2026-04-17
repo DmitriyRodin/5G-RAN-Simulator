@@ -55,6 +55,8 @@ private:
     void sendRegistrationResponse(uint32_t node_id, uint8_t status,
                                   const QHostAddress& ip, quint16 port);
     bool areWithinCoverageArea(const NodeInfo* first, const NodeInfo* second);
+    void updatePosition(const uint32_t& id, const EntityType& type,
+                        const QPointF& position);
 
     UdpTransport* transport_ = nullptr;
     QMap<uint32_t, NodeInfo> gnbs_;

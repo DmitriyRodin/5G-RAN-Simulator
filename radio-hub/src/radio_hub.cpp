@@ -33,6 +33,8 @@ void RadioHub::onDataReceived(const QByteArray& raw_data,
         return;
     }
 
+    updatePosition(packet.srcId, packet.nodeType, packet.position);
+
     if (packet.isBroadcast()) {
         broadcastFromGbn(raw_data, packet.srcId);
         return;
@@ -44,7 +46,7 @@ void RadioHub::onDataReceived(const QByteArray& raw_data,
 void RadioHub::handleRegistration(const uint32_t node_id,
                                   const QHostAddress& sender_ip,
                                   quint16 sender_port, const EntityType type,
-                                  const QPointF& coordinates)
+                                  const QPointF& position)
 {
     uint8_t reg_status = HubResponse::REG_DENIED;
 
@@ -59,7 +61,7 @@ void RadioHub::handleRegistration(const uint32_t node_id,
         switch (type) {
             case EntityType::UE: {
                 ues_[node_id] = {node_id, EntityType::UE, sender_ip,
-                                 sender_port, coordinates};
+                                 sender_port, position};
                 qDebug() << QString("[RadioHub] UE %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
                 break;
@@ -70,7 +72,7 @@ void RadioHub::handleRegistration(const uint32_t node_id,
                     EntityType::GNB,
                     sender_ip,
                     sender_port,
-                    coordinates,
+                    position,
                     GnbParameters{NetConfig::GNB_DEFAULT_COVERAGE_RADIUS}};
                 qDebug()
                     << QString("[RadioHub] GNB %1 registered").arg(node_id);
@@ -119,8 +121,7 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
     switch (packet.type) {
         case SimMessageType::Registration: {
             handleRegistration(packet.srcId, sender_ip, sender_port,
-                               packet.nodeType,
-                               SimProtocol::getCoordinates(packet.payload));
+                               packet.nodeType, packet.position);
             break;
         }
         case SimMessageType::Deregistration: {
@@ -218,6 +219,22 @@ bool RadioHub::areWithinCoverageArea(const NodeInfo* source,
     return false;
 }
 
+void RadioHub::updatePosition(const uint32_t& id, const EntityType& type,
+                              const QPointF& position)
+{
+    if (type == EntityType::UE) {
+        auto it = ues_.find(id);
+        if (it != ues_.end()) {
+            it.value().position = position;
+        }
+    } else if (type == EntityType::GNB) {
+        auto it = gnbs_.find(id);
+        if (it != gnbs_.end()) {
+            it.value().position = position;
+        }
+    }
+}
+
 void RadioHub::handleDeregistration(uint32_t src_id, EntityType type)
 {
     bool removed = false;
@@ -235,23 +252,23 @@ void RadioHub::handleDeregistration(uint32_t src_id, EntityType type)
             break;
 
         default:
-            qWarning()
-                << "[RadioHub] Deregistration FAILED: Unknown EntityType for ID"
-                << src_id;
+            qWarning() << "[RadioHub] Deregistration FAILED: Unknown "
+                          "EntityType for ID"
+                       << src_id;
             return;
     }
 
     if (removed) {
-        qDebug()
-            << QString(
-                   "[RadioHub] %1 %2 successfully deregistered and removed.")
-                   .arg(typeStr)
-                   .arg(src_id);
+        qDebug() << QString(
+                        "[RadioHub] %1 %2 successfully deregistered and "
+                        "removed.")
+                        .arg(typeStr)
+                        .arg(src_id);
     } else {
-        qWarning()
-            << QString(
-                   "[RadioHub] Attempted to deregister unknown %1 with ID %2.")
-                   .arg(typeStr)
-                   .arg(src_id);
+        qWarning() << QString(
+                          "[RadioHub] Attempted to deregister unknown %1 "
+                          "with ID %2.")
+                          .arg(typeStr)
+                          .arg(src_id);
     }
 }

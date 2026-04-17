@@ -72,9 +72,8 @@ void BaseEntity::registerAtHub(const QHostAddress& hub_address,
     hub_address_ = hub_address;
     hub_port_ = hub_port;
 
-    const QByteArray payload = SimProtocol::writeCoordinates(position_);
     const QByteArray packet = SimProtocol::buildPacket(
-        id_, type_, NetConfig::HUB_ID, SimMessageType::Registration, payload);
+        id_, type_, NetConfig::HUB_ID, SimMessageType::Registration, position_);
 
     transport_->sendData(packet, hub_address_, hub_port_);
 }
@@ -105,8 +104,9 @@ void BaseEntity::sendSimData(ProtocolMsgType proto_type,
     protocolPayload.append(static_cast<char>(proto_type));
     protocolPayload.append(payload);
 
-    QByteArray finalPacket = SimProtocol::buildPacket(
-        id_, type_, target_id, SimMessageType::Data, protocolPayload);
+    QByteArray finalPacket =
+        SimProtocol::buildPacket(id_, type_, target_id, SimMessageType::Data,
+                                 position_, protocolPayload);
 
     sendingResult result =
         transport_->sendData(finalPacket, hub_address_, hub_port_);
