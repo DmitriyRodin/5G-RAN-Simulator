@@ -15,8 +15,9 @@ struct DecodedPacket {
     uint32_t srcId;
     uint32_t dstId;
     SimMessageType type;
-    QByteArray payload;
     EntityType nodeType;
+    QPointF position;
+    QByteArray payload;
     bool isValid = false;
 
     bool isForMe(uint32_t myId) const;
@@ -26,14 +27,10 @@ struct DecodedPacket {
 };
 
 QByteArray buildPacket(uint32_t src, EntityType entity_type, uint32_t dst,
-                       SimMessageType type,
+                       SimMessageType type, const QPointF& position,
                        const QByteArray& payload = QByteArray());
 
 DecodedPacket parse(const QByteArray& data);
-
-QPointF getCoordinates(const QByteArray& payload);
-QByteArray writeCoordinates(const QPointF& position);
-
 }  // namespace SimProtocol
 
 #endif  // SIMPROTOCOL_HPP

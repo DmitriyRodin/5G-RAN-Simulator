@@ -5,7 +5,8 @@ namespace SimProtocol {
 const size_t MIN_HEADER_SIZE = 10;
 
 QByteArray buildPacket(uint32_t src, EntityType nodeType, uint32_t dst,
-                       SimMessageType type, const QByteArray& payload)
+                       SimMessageType type, const QPointF& position,
+                       const QByteArray& payload)
 {
     QByteArray packet;
     packet.reserve(MIN_HEADER_SIZE + payload.size());
@@ -17,6 +18,8 @@ QByteArray buildPacket(uint32_t src, EntityType nodeType, uint32_t dst,
     ds << nodeType;
     ds << dst;
     ds << static_cast<uint8_t>(type);
+    ds << position.x();
+    ds << position.y();
 
     if (!payload.isEmpty()) {
         ds.writeRawData(payload.constData(), payload.size());
@@ -43,35 +46,17 @@ DecodedPacket parse(const QByteArray& data)
     ds >> result.dstId;
     ds >> rawType;
     result.type = static_cast<SimMessageType>(rawType);
+    double position_x{};
+    ds >> position_x;
+    double position_y{};
+    ds >> position_y;
+    result.position = QPointF(position_x, position_y);
 
     int headerSize = ds.device()->pos();
     result.payload = data.mid(headerSize);
 
     result.isValid = true;
     return result;
-}
-
-QPointF getCoordinates(const QByteArray& payload)
-{
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
-    double position_x;
-    double position_y;
-    ds >> position_x;
-    ds >> position_y;
-
-    return QPointF(position_x, position_y);
-}
-
-QByteArray writeCoordinates(const QPointF& position)
-{
-    QByteArray packet;
-    QDataStream ds(&packet, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-    ds << position.x();
-    ds << position.y();
-
-    return packet;
 }
 
 bool DecodedPacket::isForMe(uint32_t myId) const
