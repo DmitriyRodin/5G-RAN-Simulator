@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QHostAddress>
+#include <QPoint>
 
 enum class EntityType : uint8_t {
     UE,
@@ -106,6 +107,8 @@ struct UeContext {
 
 namespace NetConfig {
 const uint32_t HUB_ID = 0;
+const QPointF HUB_VIRTUAL_POS = QPointF(0, 0);
+
 const uint32_t BROADCAST_ID = 0xFFFFFFFF;
 
 constexpr uint32_t GNB_ID_START = 1;

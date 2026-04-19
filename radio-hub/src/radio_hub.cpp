@@ -104,12 +104,15 @@ void RadioHub::handleRegistration(const uint32_t node_id,
 void RadioHub::sendRegistrationResponse(uint32_t node_id, uint8_t status,
                                         const QHostAddress& ip, quint16 port)
 {
-    QByteArray response;
-    QDataStream ds(&response, QIODevice::WriteOnly);
+    QByteArray payload;
+    QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
-    ds << NetConfig::HUB_ID << static_cast<uint8_t>(EntityType::RadioHub)
-       << node_id << static_cast<uint8_t>(SimMessageType::RegistrationResponse)
-       << status;
+    ds << status;
+
+    QByteArray response =
+        SimProtocol::buildPacket(NetConfig::HUB_ID, EntityType::RadioHub,
+                                 node_id, SimMessageType::RegistrationResponse,
+                                 NetConfig::HUB_VIRTUAL_POS, payload);
 
     transport_->sendData(response, ip, port);
 }
