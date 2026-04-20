@@ -31,4 +31,7 @@ target_link_libraries(common_lib PUBLIC
     Qt6::Network
 )
 
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
 
