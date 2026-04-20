@@ -5,12 +5,14 @@
 
 #include "flow_logger.hpp"
 
-GnbLogic::GnbLogic(uint32_t id, double radius, QObject* parent)
-    : BaseEntity(id, EntityType::GNB, parent)
+GnbLogic::GnbLogic(uint32_t id, double radius, int radio_frame_duration,
+                   const uint32_t hub_id, const uint32_t broadcast_id,
+                   QObject* parent)
+    : BaseEntity(id, EntityType::GNB, hub_id, broadcast_id, parent)
     , radius_(radius)
 {
     main_timer_ = new QTimer(this);
-    main_timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
+    main_timer_->setInterval(radio_frame_duration);
     connect(main_timer_, &QTimer::timeout, this, &GnbLogic::onTick);
     last_broadcast_ = std::chrono::steady_clock::now();
     connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,
@@ -104,9 +106,8 @@ void GnbLogic::sendBroadcastInfo()
     ds << static_cast<int16_t>(cellConfig_.mcc);
     ds << static_cast<int16_t>(cellConfig_.mnc);
 
-    sendSimData(ProtocolMsgType::Sib1, broadcast_info, NetConfig::BROADCAST_ID);
-    FlowLogger::log(type_, id_, NetConfig::BROADCAST_ID, ProtocolMsgType::Sib1,
-                    false);
+    sendSimData(ProtocolMsgType::Sib1, broadcast_info, broadcast_id_);
+    FlowLogger::log(type_, id_, broadcast_id_, ProtocolMsgType::Sib1, false);
 }
 
 void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)

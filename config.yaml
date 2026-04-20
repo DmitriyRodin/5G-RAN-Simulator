@@ -1,0 +1,25 @@
+network:
+  hub_port: 5555
+  gnb_id_start: 1
+  ue_id_start: 501
+  tracking_area_code: 100
+  tx_power_db: 43.0
+  radio_frame_duration: 10
+  hub_id: 0
+  broadcast_id: 4294967295
+
+simulation:
+  gnb_count: 3
+  ue_count: 15
+  ue_per_gnb: 4
+  gnb_positions:
+    - [ -1800, -1000 ]
+    - [ 1800, -1400 ]
+    - [ 0, 1300 ]
+  gnb_radius: 1200
+  ue_position_boundaries: [ 200, 1000 ]
+  ue_map_boundary: [ -3000, 3000 ]  
+  hub_virtual_position: [0, 0]
+
+paths:
+  build_dir: "../build"

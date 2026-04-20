@@ -15,7 +15,8 @@ class BaseEntity : public QObject
 {
     Q_OBJECT
 public:
-    BaseEntity(uint32_t id, const EntityType& type, QObject* parent = nullptr);
+    BaseEntity(uint32_t id, const EntityType& type, const uint32_t hub_id,
+               const uint32_t broadcast_id, QObject* parent = nullptr);
     virtual ~BaseEntity();
 
     void stop();
@@ -47,6 +48,8 @@ protected:
 
     QHostAddress hub_address_;
     quint16 hub_port_;
+    uint32_t hub_id_;
+    uint32_t broadcast_id_;
 
     bool is_registered_;
     QPointF position_;

@@ -7,13 +7,17 @@
 
 #include "gnb_logic.hpp"
 #include "radio_hub.hpp"
+#include "settings.hpp"
 #include "ue_logic.hpp"
 
 class SimulationController : public QObject
 {
     Q_OBJECT
 public:
-    explicit SimulationController(QObject* parent = nullptr);
+    explicit SimulationController(const NetworkSettings& net,
+                                  const SimulationSettings& sim,
+                                  const Paths& paths,
+                                  QObject* parent = nullptr);
 
     void startSimulation();
     QList<std::shared_ptr<GnbLogic>> getGnbs() const;
@@ -23,15 +27,13 @@ private:
     void setupGnbStations();
     void setupUeDevices();
 
+    NetworkSettings network_settings_;
+    SimulationSettings simulation_settings_;
+    Paths paths_;
+
     RadioHub* hub_ = nullptr;
     QHash<uint32_t, std::shared_ptr<GnbLogic>> gnbs_;
     QHash<uint32_t, std::shared_ptr<UeLogic>> ues_;
-
-    const quint16 HUB_PORT = 5555;
-    const int GNB_COUNT = 3;
-    const int UE_COUNT = 16;
-    const double COVERAGE_RADIUS = 600.0;
-    const uint16_t Tracking_Area_Code = 100;
 };
 
 #endif  // SIMULATION_CONTROLLER_HPP

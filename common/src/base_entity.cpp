@@ -5,10 +5,14 @@
 
 #include "sim_protocol.hpp"
 
-BaseEntity::BaseEntity(uint32_t id, const EntityType& type, QObject* parent)
+BaseEntity::BaseEntity(uint32_t id, const EntityType& type,
+                       const uint32_t hub_id, const uint32_t broadcast_id,
+                       QObject* parent)
     : QObject(parent)
     , id_(id)
     , type_(type)
+    , hub_id_(hub_id)
+    , broadcast_id_(broadcast_id)
     , is_registered_(false)
 {
 }
@@ -73,7 +77,7 @@ void BaseEntity::registerAtHub(const QHostAddress& hub_address,
     hub_port_ = hub_port;
 
     const QByteArray packet = SimProtocol::buildPacket(
-        id_, type_, NetConfig::HUB_ID, SimMessageType::Registration, position_);
+        id_, type_, hub_id_, SimMessageType::Registration, position_);
 
     transport_->sendData(packet, hub_address_, hub_port_);
 }
@@ -132,7 +136,8 @@ void BaseEntity::handleIncomingRawData(const QByteArray& data,
         return;
     }
 
-    if (!decoded.isForMe(id_) && !decoded.isBroadcast()) {
+    if (!decoded.isForMe(id_, broadcast_id_) &&
+        !decoded.isBroadcast(broadcast_id_)) {
         return;
     }
 

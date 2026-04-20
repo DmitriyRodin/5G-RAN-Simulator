@@ -105,22 +105,6 @@ struct UeContext {
     }
 };
 
-namespace NetConfig {
-const uint32_t HUB_ID = 0;
-const QPointF HUB_VIRTUAL_POS = QPointF(0, 0);
-
-const uint32_t BROADCAST_ID = 0xFFFFFFFF;
-
-constexpr uint32_t GNB_ID_START = 1;
-constexpr uint32_t UE_ID_START = 500;
-
-const double GNB_DEFAULT_COVERAGE_RADIUS = 1200;
-}  // namespace NetConfig
-
-namespace SimConfig {
-constexpr int RADIO_FRAME_DURATION_MS = 10;
-}
-
 // ProtocolMsgType from gNb to UE and from UE to gNB
 
 enum class ProtocolMsgType : uint8_t {

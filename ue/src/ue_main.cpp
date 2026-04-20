@@ -32,10 +32,19 @@ int main(int argc, char* argv[])
     QCommandLineOption radio_hub_addr_option(
         "hub-addr", "IP address or hostname of the Radio Hub.", "address",
         "127.0.0.1");
+    QCommandLineOption radio_frame_duration_option(
+        "radio-frame-duration", "Radio Frame Duration", "radioframe", "10");
+    QCommandLineOption hub_id_option("hub-id", "Hub ID", "hubId", "0");
+    QCommandLineOption broadcast_id_option("broadcast-id",
+                                           "Broadcast id option",
+                                           "BroadcastIdOption", "4294967295");
 
     parser.addOption(x_option);
     parser.addOption(y_option);
     parser.addOption(radio_hub_addr_option);
+    parser.addOption(radio_frame_duration_option);
+    parser.addOption(hub_id_option);
+    parser.addOption(broadcast_id_option);
 
     QCommandLineOption radio_hub_port_option(
         "hub-port", "Target port of the Radio Hub.", "port", "5555");
@@ -57,6 +66,12 @@ int main(int argc, char* argv[])
     QHostAddress radio_hub_address(parser.value(radio_hub_addr_option));
     const quint16 radio_hub_port =
         static_cast<quint16>(parser.value(radio_hub_port_option).toUInt());
+    const int radio_frame_duration =
+        parser.value(radio_frame_duration_option).toInt();
+    const uint32_t hub_id =
+        static_cast<uint32_t>(parser.value(hub_id_option).toUInt());
+    const uint32_t broadcast_id =
+        static_cast<uint32_t>(parser.value(broadcast_id_option).toUInt());
 
     if (radio_hub_address.isNull()) {
         qCritical() << "Error: Invalid Hub Address"
@@ -74,7 +89,8 @@ int main(int argc, char* argv[])
                              .arg(radio_hub_address.toString())
                              .arg(radio_hub_port);
 
-    auto ue = std::make_unique<UeLogic>(id);
+    auto ue = std::make_unique<UeLogic>(id, radio_frame_duration, hub_id,
+                                        broadcast_id);
     ue->setPosition(QPointF{pos_X, pos_Y});
     if (ue->setupNetwork(port)) {
         ue->registerAtHub(radio_hub_address, radio_hub_port);

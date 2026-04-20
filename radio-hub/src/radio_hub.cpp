@@ -1,12 +1,19 @@
 #include "radio_hub.hpp"
 
+#include <optional>
+
 #include <QDataStream>
 #include <QDebug>
 #include <QLine>
 
-RadioHub::RadioHub(quint16 listen_port, QObject* parent)
+RadioHub::RadioHub(quint16 listen_port, const uint32_t hub_id,
+                   const uint32_t broadcast_id, const QPointF virt_hub_pos,
+                   QObject* parent)
     : QObject(parent)
     , transport_(nullptr)
+    , hub_id_(hub_id)
+    , broadcast_id_(broadcast_id)
+    , position_(virt_hub_pos)
 {
     transport_ = new UdpTransport(this);
 
@@ -28,14 +35,14 @@ void RadioHub::onDataReceived(const QByteArray& raw_data,
         return;
     }
 
-    if (packet.isForHub()) {
+    if (packet.isForHub(hub_id_)) {
         handleHubMessage(packet, sender_ip, sender_port);
         return;
     }
 
     updatePosition(packet.srcId, packet.nodeType, packet.position);
 
-    if (packet.isBroadcast()) {
+    if (packet.isBroadcast(broadcast_id_)) {
         broadcastFromGbn(raw_data, packet.srcId);
         return;
     }
@@ -46,11 +53,11 @@ void RadioHub::onDataReceived(const QByteArray& raw_data,
 void RadioHub::handleRegistration(const uint32_t node_id,
                                   const QHostAddress& sender_ip,
                                   quint16 sender_port, const EntityType type,
-                                  const QPointF& position)
+                                  const QPointF& position, const double& radius)
 {
     uint8_t reg_status = HubResponse::REG_DENIED;
 
-    if (node_id == NetConfig::HUB_ID || node_id == NetConfig::BROADCAST_ID) {
+    if (node_id == hub_id_ || node_id == broadcast_id_) {
         qWarning() << "Registration REJECTED: Invalid Reserved ID";
         reg_status = HubResponse::REG_DENIED;
     } else if (ues_.contains(node_id) || gnbs_.contains(node_id)) {
@@ -68,12 +75,9 @@ void RadioHub::handleRegistration(const uint32_t node_id,
             }
             case EntityType::GNB: {
                 gnbs_[node_id] = {
-                    node_id,
-                    EntityType::GNB,
-                    sender_ip,
-                    sender_port,
-                    position,
-                    GnbParameters{NetConfig::GNB_DEFAULT_COVERAGE_RADIUS}};
+                    node_id,   EntityType::GNB,
+                    sender_ip, sender_port,
+                    position,  std::make_optional<GnbParameters>({radius})};
                 qDebug()
                     << QString("[RadioHub] GNB %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
@@ -109,10 +113,9 @@ void RadioHub::sendRegistrationResponse(uint32_t node_id, uint8_t status,
     ds.setByteOrder(QDataStream::BigEndian);
     ds << status;
 
-    QByteArray response =
-        SimProtocol::buildPacket(NetConfig::HUB_ID, EntityType::RadioHub,
-                                 node_id, SimMessageType::RegistrationResponse,
-                                 NetConfig::HUB_VIRTUAL_POS, payload);
+    QByteArray response = SimProtocol::buildPacket(
+        hub_id_, EntityType::RadioHub, node_id,
+        SimMessageType::RegistrationResponse, position_, payload);
 
     transport_->sendData(response, ip, port);
 }
@@ -124,7 +127,8 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
     switch (packet.type) {
         case SimMessageType::Registration: {
             handleRegistration(packet.srcId, sender_ip, sender_port,
-                               packet.nodeType, packet.position);
+                               packet.nodeType, packet.position,
+                               SimProtocol::parseRadius(packet.payload));
             break;
         }
         case SimMessageType::Deregistration: {

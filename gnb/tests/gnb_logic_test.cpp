@@ -5,7 +5,7 @@ class GnbLogicTest : public Test
 protected:
     void SetUp() override
     {
-        gnb = new StrictMock<MockGnbLogic>(101);
+        gnb = new StrictMock<MockGnbLogic>(TestData::GNB_ID);
 
         config.tac = 123;
         config.mcc = 255;
@@ -25,7 +25,8 @@ protected:
 TEST_F(GnbLogicTest, SIB1_Broadcast_Validation)
 {
     EXPECT_CALL(*gnb, sendSimData(ProtocolMsgType::Sib1,
-                                  HasSib1Data(101, 123, 255, 1), 0xFFFFFFFF))
+                                  HasSib1Data(TestData::GNB_ID, 123, 255, 1),
+                                  0xFFFFFFFF))
         .Times(1);
 
     gnb->sendBroadcastInfo();
