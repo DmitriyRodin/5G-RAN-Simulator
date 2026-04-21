@@ -42,6 +42,17 @@ else
     ANY_FAILURE=1
 fi
 
+echo ""
+echo "---------------------------------------"
+echo "And now let's start Common tests:"
+if [ -f "build_test/common/tests/common_tests" ]; then
+    ./build_test/common/tests/common_tests
+    if [ $? -ne 0 ]; then ANY_FAILURE=1; fi
+else
+    echo "Oops: received an error: common_tests binary not found!"
+    ANY_FAILURE=1
+fi
+
 echo "---------------------------------------"
 
 if [ $ANY_FAILURE -ne 0 ]; then
