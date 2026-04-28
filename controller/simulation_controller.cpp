@@ -3,10 +3,19 @@
 #include <QPoint>
 #include <QRandomGenerator>
 
-SimulationController::SimulationController(QObject* parent)
+SimulationController::SimulationController(const NetworkSettings& net,
+                                           const SimulationSettings& sim,
+                                           const Paths& paths, QObject* parent)
     : QObject(parent)
+    , network_settings_(net)
+    , simulation_settings_(sim)
+    , paths_(paths)
 {
-    hub_ = new RadioHub(HUB_PORT, this);
+    hub_ = new RadioHub(network_settings_.hub_port, network_settings_.hub_id,
+                        network_settings_.broadcast_id,
+                        QPointF(simulation_settings_.hub_virtual_position.X,
+                                simulation_settings_.hub_virtual_position.Y),
+                        this);
 }
 
 void SimulationController::startSimulation()
@@ -27,23 +36,24 @@ QList<std::shared_ptr<UeLogic>> SimulationController::getUes() const
 
 void SimulationController::setupGnbStations()
 {
-    QList<QPointF> gnb_positions = {QPointF(-1800, -1000), QPointF(1800, -1400),
-                                    QPointF(0, 1300)};
+    std::vector<Point2D> gnb_positions = simulation_settings_.gnb_positions;
 
-    for (int i = 0; i < GNB_COUNT; ++i) {
-        auto gnb =
-            std::make_shared<GnbLogic>(i + NetConfig::GNB_ID_START,
-                                       NetConfig::GNB_DEFAULT_COVERAGE_RADIUS);
+    for (int i = 0; i < simulation_settings_.gnb_count; ++i) {
+        auto gnb = std::make_shared<GnbLogic>(
+            i + network_settings_.gnb_id_start, simulation_settings_.gnb_radius,
+            network_settings_.radio_frame_duration, network_settings_.hub_id,
+            network_settings_.broadcast_id);
 
-        gnb->setPosition(gnb_positions[i]);
-        gnb->setTxPower(43.0);
+        gnb->setPosition({gnb_positions[i].X, gnb_positions[i].Y});
+        gnb->setTxPower(network_settings_.tx_power_db);
 
         GnbCellConfig config;
-        config.tac = Tracking_Area_Code;
+        config.tac = network_settings_.tracking_area_code;
         gnb->setCellConfig(config);
 
         if (gnb->setupNetwork(0)) {
-            gnb->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
+            gnb->registerAtHub(QHostAddress::LocalHost,
+                               network_settings_.hub_port);
             gnb->run();
             gnbs_[gnb->getId()] = gnb;
         }
@@ -52,19 +62,23 @@ void SimulationController::setupGnbStations()
 
 void SimulationController::setupUeDevices()
 {
-    int ue_created = 1;
+    int ue_created = 0;
 
     for (auto it = gnbs_.begin(); it != gnbs_.end(); ++it) {
         const QPointF gnb_positions = it.value()->position();
 
-        const int ue_count_per_gnb = 4;
-        for (int i = 1; i < ue_count_per_gnb; ++i) {
-            auto ue =
-                std::make_shared<UeLogic>(ue_created + NetConfig::UE_ID_START);
+        const int ue_count_per_gnb = simulation_settings_.ue_per_gnb;
+        for (int i = 0; i < ue_count_per_gnb; ++i) {
+            auto ue = std::make_shared<UeLogic>(
+                ue_created + network_settings_.ue_id_start,
+                network_settings_.radio_frame_duration,
+                network_settings_.hub_id, network_settings_.broadcast_id);
 
             double angle =
                 QRandomGenerator::global()->generateDouble() * 2 * M_PI;
-            double dist = QRandomGenerator::global()->bounded(200, 2000);
+            double dist = QRandomGenerator::global()->bounded(
+                simulation_settings_.ue_position_boundary.min,
+                simulation_settings_.ue_position_boundary.max);
             const QPointF ue_position(gnb_positions.x() + dist * cos(angle),
                                       gnb_positions.y() + dist * sin(angle));
 
@@ -72,16 +86,19 @@ void SimulationController::setupUeDevices()
             ue->setTxPower(23.0);
 
             if (ue->setupNetwork(0)) {
-                ue->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
+                ue->registerAtHub(QHostAddress::LocalHost,
+                                  network_settings_.hub_port);
                 ues_[ue->getId()] = ue;
             }
             ue_created++;
         }
     }
 
-    while (ue_created <= UE_COUNT) {
-        auto ue =
-            std::make_shared<UeLogic>(ue_created + NetConfig::UE_ID_START);
+    while (ue_created < simulation_settings_.ue_count) {
+        auto ue = std::make_shared<UeLogic>(
+            ue_created + network_settings_.ue_id_start,
+            network_settings_.radio_frame_duration, network_settings_.hub_id,
+            network_settings_.broadcast_id);
 
         const double random_x =
             QRandomGenerator::global()->bounded(-3000, 3000);
@@ -92,7 +109,8 @@ void SimulationController::setupUeDevices()
         ue->setTxPower(23.0);
 
         if (ue->setupNetwork(0)) {
-            ue->registerAtHub(QHostAddress::LocalHost, HUB_PORT);
+            ue->registerAtHub(QHostAddress::LocalHost,
+                              network_settings_.hub_port);
             ue->run();
             ues_[ue->getId()] = ue;
         }

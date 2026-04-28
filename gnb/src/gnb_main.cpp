@@ -3,6 +3,7 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QFileInfo>
 #include <QHostAddress>
 
 #include "gnb_logic.hpp"
@@ -30,11 +31,10 @@ int main(int argc, char* argv[])
                                    "0");
     parser.addOption(port_option);
 
-    QCommandLineOption radius_option(
-        QStringList() << "r"
-                      << "radius",
-        "Coverage radius in meters.", "meters",
-        QString::number(NetConfig::GNB_DEFAULT_COVERAGE_RADIUS));
+    QCommandLineOption radius_option(QStringList() << "r"
+                                                   << "radius",
+                                     "Coverage radius in meters.", "meters",
+                                     QString::number(1200));
 
     parser.addOption(radius_option);
 
@@ -44,11 +44,20 @@ int main(int argc, char* argv[])
                                              "127.0.0.1");
     QCommandLineOption radio_hub_port_option("hub-port", "Hub Port.", "port",
                                              "5555");
+    QCommandLineOption radio_frame_duration_option(
+        "radio-frame-duration", "Radio Frame Duration", "radioframe", "10");
+    QCommandLineOption hub_id_option("hub-id", "Hub ID", "hubId", "0");
+    QCommandLineOption broadcast_id_option("broadcast-id",
+                                           "Broadcast id option",
+                                           "BroadcastIdOption", "4294967295");
 
     parser.addOption(x_option);
     parser.addOption(y_option);
     parser.addOption(radio_hub_addr_option);
     parser.addOption(radio_hub_port_option);
+    parser.addOption(radio_frame_duration_option);
+    parser.addOption(hub_id_option);
+    parser.addOption(broadcast_id_option);
 
     parser.process(a);
 
@@ -66,16 +75,24 @@ int main(int argc, char* argv[])
     QHostAddress radio_hub_address(parser.value(radio_hub_addr_option));
     const quint16 hub_port =
         static_cast<quint16>(parser.value(radio_hub_port_option).toUInt());
+    const int radio_frame_duration =
+        parser.value(radio_frame_duration_option).toInt();
+    const uint32_t hub_id =
+        static_cast<uint32_t>(parser.value(hub_id_option).toUInt());
+    const uint32_t broadcast_id =
+        static_cast<uint32_t>(parser.value(broadcast_id_option).toUInt());
 
     qInfo().noquote() << QString(
-                             "gNB [%1] Initializing. Radius: %2m, Pos: (%3, "
+                             "gNB [%1] Initializing. Radius: %2m, Pos: (%3,    "
+                             "                       "
                              "%4). Connecting to Hub %5:%6")
                              .arg(id)
                              .arg(radius)
                              .arg(pos_X)
                              .arg(pos_Y);
 
-    auto gnb = std::make_unique<GnbLogic>(id, radius);
+    auto gnb = std::make_unique<GnbLogic>(id, radius, radio_frame_duration,
+                                          hub_id, broadcast_id);
     gnb->setPosition(QPointF{pos_X, pos_Y});
 
     if (gnb->setupNetwork(port)) {

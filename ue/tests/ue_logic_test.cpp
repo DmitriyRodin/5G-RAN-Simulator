@@ -5,7 +5,9 @@ class UeLogicTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        ue = new UeLogicTestWrapper(101);
+        ue = new UeLogicTestWrapper(TestData::GNB_ID,
+                                    TestData::RADIO_FRAME_DURATION,
+                                    TestData::HUB_ID, TestData::BROADCAST_ID);
     }
 
     void TearDown() override
@@ -131,7 +133,10 @@ TEST_F(UeLogicTest, HandleRrcSetupContentionFailure)
     QByteArray payload;
     QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
-    ds << (quint64)999 << (uint8_t)1;  // Чужой ID!
+
+    const quint64 ANOTHER_UE_IDENTITY = 999;
+    const uint16_t ASSIGNED_RNTI = 1;
+    ds << (quint64)ANOTHER_UE_IDENTITY << (uint8_t)ASSIGNED_RNTI;
 
     ue->onProtocolMessageReceived(50, ProtocolMsgType::RrcSetup, payload);
 
@@ -157,7 +162,7 @@ TEST_F(UeLogicTest, SendRegistrationRequestPayload)
     in >> model >> id;
 
     EXPECT_STREQ(model.toStdString().c_str(), "UE-Capabilities-Model-X");
-    EXPECT_EQ(id, 101);
+    EXPECT_EQ(id, TestData::GNB_ID);
 }
 
 TEST_F(UeLogicTest, HandleRrcReleaseAndRestart)

@@ -9,8 +9,9 @@
 
 #include "flow_logger.hpp"
 
-UeLogic::UeLogic(uint32_t id, QObject* parent)
-    : BaseEntity(id, EntityType::UE, parent)
+UeLogic::UeLogic(uint32_t id, int radio_frame_duration, const uint32_t hub_id,
+                 const uint32_t broadcast_id, QObject* parent)
+    : BaseEntity(id, EntityType::UE, hub_id, broadcast_id, parent)
     , state_(UeRrcState::DETACHED)
     , target_gnb_id_(0)
     , crnti_(0)
@@ -21,7 +22,7 @@ UeLogic::UeLogic(uint32_t id, QObject* parent)
              << "] Created. "
                 "Initial State: DETACHED";
     timer_ = new QTimer(this);
-    timer_->setInterval(SimConfig::RADIO_FRAME_DURATION_MS);
+    timer_->setInterval(radio_frame_duration);
 
     connect(timer_, &QTimer::timeout, this, &UeLogic::onTick);
     last_report_time_ = std::chrono::steady_clock::now();

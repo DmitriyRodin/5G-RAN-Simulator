@@ -9,11 +9,13 @@ add_library(common_lib STATIC
     include/types.hpp
     include/udp_transport.hpp
     include/flow_logger.hpp
+    include/config_manager.hpp
     src/base_entity.cpp
     src/sim_protocol.cpp
     src/types.cpp
     src/udp_transport.cpp
     src/flow_logger.cpp
+    src/config_manager.cpp
 )
 
 target_include_directories(common_lib PUBLIC
@@ -26,12 +28,14 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
 )
 
+find_package(yaml-cpp REQUIRED)
+
 target_link_libraries(common_lib PUBLIC
     Qt6::Core
     Qt6::Network
+    yaml-cpp
 )
 
 if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
-

@@ -19,6 +19,9 @@ protected:
     const QPointF TEST_POS = QPointF(77.7, -444.44);
     const QByteArray TEST_PAYLOAD =
         "Protocol_Verification_Payload_5G-RAN-Simulator";
+    const uint32_t HUB_ID = 0;
+    const uint32_t BROADCAST_ID = 4294967295;
+    const QPointF HUB_VIRTUAL_POS{0.0, 0.0};
 };
 
 TEST_F(SimProtocolTest, SerializationSymmetry)
@@ -43,12 +46,12 @@ TEST_F(SimProtocolTest, SerializationSymmetry)
 TEST_F(SimProtocolTest, RoutingLogicBroadcast)
 {
     QByteArray raw_data =
-        buildPacket(TEST_GNB_ID, TEST_UE_TYPE, NetConfig::BROADCAST_ID,
-                    TEST_MESSAGE_TYPE, TEST_POS, TEST_PAYLOAD);
+        buildPacket(TEST_GNB_ID, TEST_UE_TYPE, BROADCAST_ID, TEST_MESSAGE_TYPE,
+                    TEST_POS, TEST_PAYLOAD);
     DecodedPacket decoded = parse(raw_data);
 
-    EXPECT_TRUE(decoded.isBroadcast());
-    EXPECT_FALSE(decoded.isForHub());
+    EXPECT_TRUE(decoded.isBroadcast(BROADCAST_ID));
+    EXPECT_FALSE(decoded.isForHub(HUB_ID));
 }
 
 TEST_F(SimProtocolTest, RoutingLogicTargetMe)
@@ -58,8 +61,8 @@ TEST_F(SimProtocolTest, RoutingLogicTargetMe)
                     SimMessageType::RegistrationResponse, TEST_POS);
     DecodedPacket decoded = parse(raw_data);
 
-    EXPECT_TRUE(decoded.isForMe(TEST_UE_ID));
-    EXPECT_FALSE(decoded.isForMe(123321));
+    EXPECT_TRUE(decoded.isForMe(TEST_UE_ID, BROADCAST_ID));
+    EXPECT_FALSE(decoded.isForMe(123321, BROADCAST_ID));
 }
 
 TEST_F(SimProtocolTest, HandlesEmptyPayload)
@@ -83,11 +86,11 @@ TEST_F(SimProtocolTest, RejectsIncompleteHeader)
 
 TEST_F(SimProtocolTest, IdentifiesHubMessages)
 {
-    QByteArray raw_data = buildPacket(
-        NetConfig::HUB_ID, EntityType::RadioHub, TEST_UE_ID,
-        SimMessageType::RegistrationResponse, NetConfig::HUB_VIRTUAL_POS);
+    QByteArray raw_data =
+        buildPacket(HUB_ID, EntityType::RadioHub, TEST_UE_ID,
+                    SimMessageType::RegistrationResponse, HUB_VIRTUAL_POS);
     DecodedPacket decoded = parse(raw_data);
 
-    EXPECT_TRUE(decoded.isFromHub());
-    EXPECT_EQ(decoded.srcId, NetConfig::HUB_ID);
+    EXPECT_TRUE(decoded.isFromHub(HUB_ID));
+    EXPECT_EQ(decoded.srcId, HUB_ID);
 }

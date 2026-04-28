@@ -16,7 +16,9 @@ class UeLogic : public BaseEntity
 {
     Q_OBJECT
 public:
-    explicit UeLogic(uint32_t id, QObject* parent = nullptr);
+    explicit UeLogic(uint32_t id, int radio_frame_duration,
+                     const uint32_t hub_id, const uint32_t broadcast_id,
+                     QObject* parent = nullptr);
     void run() override;
     void sendChatMessage(uint32_t target_ue_id, const QString& text);
     bool isConnected() const;

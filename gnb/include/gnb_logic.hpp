@@ -21,7 +21,9 @@ class GnbLogic : public BaseEntity
 {
     Q_OBJECT
 public:
-    GnbLogic(uint32_t id, double radius, QObject* parent = nullptr);
+    GnbLogic(uint32_t id, double radius, int radio_frame_duration,
+             const uint32_t hub_id, const uint32_t broadcast_id,
+             QObject* parent = nullptr);
     void setCellConfig(const GnbCellConfig& config);
     void run();
     uint32_t getConnectedUeCount() const;

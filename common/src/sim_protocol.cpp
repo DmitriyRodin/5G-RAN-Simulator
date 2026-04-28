@@ -50,6 +50,7 @@ DecodedPacket parse(const QByteArray& data)
     ds >> position_x;
     double position_y{};
     ds >> position_y;
+
     result.position = QPointF(position_x, position_y);
 
     int headerSize = ds.device()->pos();
@@ -59,27 +60,45 @@ DecodedPacket parse(const QByteArray& data)
     return result;
 }
 
-bool DecodedPacket::isForMe(uint32_t myId) const
+bool DecodedPacket::isForMe(uint32_t myId, uint32_t broadcast_id) const
 {
     if (!isValid) {
         return false;
     }
-    return (dstId == myId || dstId == NetConfig::BROADCAST_ID);
+    return (dstId == myId || dstId == broadcast_id);
 }
 
-bool DecodedPacket::isBroadcast() const
+bool DecodedPacket::isBroadcast(const uint32_t broadcast_id) const
 {
-    return isValid && (dstId == NetConfig::BROADCAST_ID);
+    return isValid && (dstId == broadcast_id);
 }
 
-bool DecodedPacket::isFromHub() const
+bool DecodedPacket::isFromHub(const uint32_t hub_id) const
 {
-    return isValid && (srcId == NetConfig::HUB_ID);
+    return isValid && (srcId == hub_id);
 }
 
-bool DecodedPacket::isForHub() const
+bool DecodedPacket::isForHub(const uint32_t hub_id) const
 {
-    return isValid && (dstId == NetConfig::HUB_ID);
+    return isValid && (dstId == hub_id);
+}
+
+double parseRadius(const QByteArray& data)
+{
+    if (data.size() < static_cast<int>(sizeof(double))) {
+        qWarning() << "[SimProtocol]: Payload too small to extract radius";
+        return 0.0;
+    }
+
+    double radius = 0.0;
+
+    QDataStream stream(data);
+    stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
+    stream.setByteOrder(QDataStream::BigEndian);
+
+    stream >> radius;
+
+    return radius;
 }
 
 }  // namespace SimProtocol

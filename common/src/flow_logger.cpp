@@ -1,5 +1,12 @@
 #include "flow_logger.hpp"
 
+void FlowLogger::setup(const uint32_t hub_id, const uint32_t broadcast_id)
+{
+    hub_id_ = hub_id;
+    broadcast_id_ = broadcast_id;
+    initialized_ = true;
+}
+
 void FlowLogger::log(const EntityType type, const uint32_t from,
                      const uint32_t to, const ProtocolMsgType msg_type,
                      const bool isIncoming)
@@ -18,12 +25,16 @@ void FlowLogger::log(const EntityType type, const uint32_t from,
                               .arg(msgName);
 }
 
-QString FlowLogger::formatId(uint32_t id)
+QString FlowLogger::formatId(const uint32_t id)
 {
-    if (id == NetConfig::HUB_ID) {
+    if (!initialized_) {
+        return QString::number(id);
+    }
+
+    if (id == hub_id_) {
         return "HUB";
     }
-    if (id == NetConfig::BROADCAST_ID) {
+    if (id == broadcast_id_) {
         return "BROADCAST";
     }
 

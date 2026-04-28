@@ -12,6 +12,14 @@
 
 using namespace ::testing;
 
+namespace TestData {
+constexpr uint32_t GNB_ID = 1;
+constexpr double RADIUS = 1200.0;
+constexpr int RADIO_FRAME_DURATION = 10;
+constexpr uint32_t HUB_ID = 0;
+constexpr uint32_t BROADCAST_ID = 0xFFFFFFFF;
+};  // namespace TestData
+
 MATCHER_P4(HasSib1Data, gnb_id, tac, mcc, mnc, "")
 {
     QDataStream ds(arg);
@@ -53,7 +61,8 @@ class MockGnbLogic : public GnbLogic
 {
 public:
     MockGnbLogic(uint32_t id)
-        : GnbLogic(id, NetConfig::GNB_DEFAULT_COVERAGE_RADIUS)
+        : GnbLogic(id, TestData::RADIUS, TestData::RADIO_FRAME_DURATION,
+                   TestData::HUB_ID, TestData::BROADCAST_ID)
     {
     }
 

@@ -32,7 +32,9 @@ class RadioHub : public QObject
     Q_OBJECT
 
 public:
-    explicit RadioHub(quint16 listen_port = 5555, QObject* parent = nullptr);
+    explicit RadioHub(quint16 listen_port, const uint32_t hub_id,
+                      const uint32_t broadcast_id, const QPointF virt_hub_pos,
+                      QObject* parent = nullptr);
 
 private slots:
     void onDataReceived(const QByteArray& data, const QHostAddress& sender_ip,
@@ -47,7 +49,8 @@ private:
 
     void handleRegistration(const uint32_t node_id,
                             const QHostAddress& sender_ip, quint16 sender_port,
-                            const EntityType type, const QPointF& coordinates);
+                            const EntityType type, const QPointF& coordinates,
+                            const double& radius);
     const NodeInfo* findNode(uint32_t id) const;
     double calculateDistance(const QPointF& position_1,
                              const QPointF& position_2);
@@ -61,6 +64,10 @@ private:
     UdpTransport* transport_ = nullptr;
     QMap<uint32_t, NodeInfo> gnbs_;
     QMap<uint32_t, NodeInfo> ues_;
+
+    const uint32_t hub_id_;
+    const uint32_t broadcast_id_;
+    const QPointF position_;
 };
 
 #endif  // RADIOHUB_HPP
