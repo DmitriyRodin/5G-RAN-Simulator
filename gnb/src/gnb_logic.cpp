@@ -5,14 +5,12 @@
 
 #include "flow_logger.hpp"
 
-GnbLogic::GnbLogic(uint32_t id, double radius, int radio_frame_duration,
-                   const uint32_t hub_id, const uint32_t broadcast_id,
-                   QObject* parent)
-    : BaseEntity(id, EntityType::GNB, hub_id, broadcast_id, parent)
-    , radius_(radius)
+GnbLogic::GnbLogic(const uint32_t id, const GnbSettings set, QObject* parent)
+    : BaseEntity(id, EntityType::GNB, set.hub_id, set.broadcast_id, parent)
+    , radius_(set.gnb_radius)
 {
     main_timer_ = new QTimer(this);
-    main_timer_->setInterval(radio_frame_duration);
+    main_timer_->setInterval(set.radio_frame_duration);
     connect(main_timer_, &QTimer::timeout, this, &GnbLogic::onTick);
     last_broadcast_ = std::chrono::steady_clock::now();
     connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,

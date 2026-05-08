@@ -6,22 +6,20 @@
 #include <QDebug>
 #include <QLine>
 
-RadioHub::RadioHub(quint16 listen_port, const uint32_t hub_id,
-                   const uint32_t broadcast_id, const QPointF virt_hub_pos,
-                   QObject* parent)
+RadioHub::RadioHub(const HubSettings set, QObject* parent)
     : QObject(parent)
     , transport_(nullptr)
-    , hub_id_(hub_id)
-    , broadcast_id_(broadcast_id)
-    , position_(virt_hub_pos)
+    , hub_id_(set.hub_id)
+    , broadcast_id_(set.broadcast_id)
+    , position_(QPointF(set.virt_hub_pos.X, set.virt_hub_pos.Y))
 {
     transport_ = new UdpTransport(this);
 
-    if (transport_->init(listen_port)) {
+    if (transport_->init(set.hub_port)) {
         connect(transport_, &UdpTransport::dataReceived, this,
                 &RadioHub::onDataReceived);
         qDebug() << "[RadioHub] Core started. Listening on port:"
-                 << listen_port;
+                 << set.hub_port;
     }
 }
 

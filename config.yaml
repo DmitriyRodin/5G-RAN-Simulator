@@ -11,15 +11,45 @@ network:
 simulation:
   gnb_count: 3
   ue_count: 15
-  ue_per_gnb: 4
-  gnb_positions:
-    - [ -1800, -1000 ]
-    - [ 1800, -1400 ]
-    - [ 0, 1300 ]
+  gnb_positions_list:
+    - id: 101
+      pos: [ -1800, -1000 ]
+    - id: 102
+      pos: [ 1800, -1400 ]
+    - id: 103
+      pos: [ 0, 1300 ]
   gnb_radius: 1200
-  ue_position_boundaries: [ 200, 1000 ]
-  ue_map_boundary: [ -3000, 3000 ]  
   hub_virtual_position: [0, 0]
-
+  ue_positions_list:
+    - id: 501
+      pos: [ 2300, -1300 ]
+    - id: 502
+      pos: [ -2400, -2400 ]
+    - id: 503
+      pos: [ -2000, -400 ]
+    - id: 504
+      pos: [ -180, 1610 ]
+    - id: 505
+      pos: [ -1000, 1610 ]
+    - id: 506
+      pos: [ -2700, 840 ]
+    - id: 507
+      pos: [ 1544, -2980 ]
+    - id: 508
+      pos: [ 1290, -530 ]
+    - id: 509
+      pos: [ -360, 2060 ]
+    - id: 510
+      pos: [ 120, 1780 ]
+    - id: 511
+      pos: [ -250, -1170 ]
+    - id: 512
+      pos: [ -2350, -1140 ]
+    - id: 513
+      pos: [ 1170, -1950 ]
+    - id: 514
+      pos: [ 1600, -3000 ]
+    - id: 515
+      pos: [ 1500, -2540 ]
 paths:
   build_dir: "../build"

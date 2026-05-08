@@ -61,8 +61,9 @@ class MockGnbLogic : public GnbLogic
 {
 public:
     MockGnbLogic(uint32_t id)
-        : GnbLogic(id, TestData::RADIUS, TestData::RADIO_FRAME_DURATION,
-                   TestData::HUB_ID, TestData::BROADCAST_ID)
+        : GnbLogic(id,
+                   GnbSettings{TestData::RADIUS, TestData::RADIO_FRAME_DURATION,
+                               TestData::HUB_ID, TestData::BROADCAST_ID})
     {
     }
 

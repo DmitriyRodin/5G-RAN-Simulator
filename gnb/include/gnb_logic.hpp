@@ -4,6 +4,7 @@
 #include <QTimer>
 
 #include "base_entity.hpp"
+#include "settings.hpp"
 
 #ifdef UNIT_TESTS
 class GnbLogicTestWrapper;
@@ -21,8 +22,7 @@ class GnbLogic : public BaseEntity
 {
     Q_OBJECT
 public:
-    GnbLogic(uint32_t id, double radius, int radio_frame_duration,
-             const uint32_t hub_id, const uint32_t broadcast_id,
+    GnbLogic(const uint32_t id, const GnbSettings set,
              QObject* parent = nullptr);
     void setCellConfig(const GnbCellConfig& config);
     void run();

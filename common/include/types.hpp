@@ -206,4 +206,8 @@ inline QString toString(RrcReleaseCause cause)
     }
 }
 
+namespace NetworkParam {
+inline constexpr quint16 EPHEMERAL_PORT = 0;
+};
+
 #endif  // TYPES_HPP

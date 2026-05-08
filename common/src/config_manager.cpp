@@ -1,6 +1,8 @@
 #include "config_manager.hpp"
 
+#include <QCommandLineParser>
 #include <QDebug>
+#include <QFileInfo>
 
 bool ConfigManager::load(const std::string& filename)
 {
@@ -48,7 +50,7 @@ void ConfigManager::parseNetwork(const YAML::Node& node)
     network_settings_.broadcast_id =
         net_node["broadcast_id"].as<uint32_t>(0xFFFFFFFF);
 
-    qDebug() << "[ConfigManager] Network settings parsed successfully";
+    qDebug() << "[ConfigManager]: Network settings parsed successfully";
 }
 
 void ConfigManager::parseSimulation(const YAML::Node& node)
@@ -59,31 +61,38 @@ void ConfigManager::parseSimulation(const YAML::Node& node)
 
     simulation_settings_.gnb_count = getRequired<int>(sim_node, "gnb_count");
     simulation_settings_.ue_count = getRequired<int>(sim_node, "ue_count");
-    simulation_settings_.ue_per_gnb = getRequired<int>(sim_node, "ue_per_gnb");
 
-    getRequiredGnbPositions(sim_node);
+    validateSection(node, "gnb_positions_list");
+
+    if (sim_node["gnb_positions_list"]) {
+        for (const auto& item : sim_node["gnb_positions_list"]) {
+            uint32_t id = item["id"].as<uint32_t>();
+            double x = item["pos"][0].as<double>();
+            double y = item["pos"][1].as<double>();
+            simulation_settings_.gnb_positions_[id] = {x, y};
+        }
+    }
+
+    validateSection(node, "ue_positions_list");
+
+    if (sim_node["ue_positions_list"]) {
+        for (const auto& node : sim_node["ue_positions_list"]) {
+            uint32_t id = node["id"].as<uint32_t>();
+            double x = node["pos"][0].as<double>();
+            double y = node["pos"][1].as<double>();
+            simulation_settings_.ue_positions_[id] = {x, y};
+        }
+    }
 
     simulation_settings_.gnb_radius =
         getRequired<double>(sim_node, "gnb_radius");
-
-    auto ue_position_boundary_pair =
-        getRequiredPair<int>(sim_node, "ue_position_boundaries");
-    simulation_settings_.ue_position_boundary.min =
-        ue_position_boundary_pair.first;
-    simulation_settings_.ue_position_boundary.max =
-        ue_position_boundary_pair.second;
-
-    auto ue_map_boundary_pair =
-        getRequiredPair<int>(sim_node, "ue_map_boundary");
-    simulation_settings_.ue_map_boundary.min = ue_map_boundary_pair.first;
-    simulation_settings_.ue_map_boundary.max = ue_map_boundary_pair.second;
 
     auto hub_virt_pos_pair =
         getRequiredPair<double>(sim_node, "hub_virtual_position");
     simulation_settings_.hub_virtual_position = {hub_virt_pos_pair.first,
                                                  hub_virt_pos_pair.second};
 
-    qDebug() << "[ConfigManager] Simulation settings parsed successfully";
+    qDebug() << "[ConfigManager]: Simulation settings parsed successfully";
 }
 
 void ConfigManager::parsePaths(const YAML::Node& node)
@@ -94,9 +103,9 @@ void ConfigManager::parsePaths(const YAML::Node& node)
     try {
         paths_.build_dir = getRequired<std::string>(build_node, "build_dir");
 
-        qDebug()
-            << "[Config] Paths settings parsed successfully. Build directory:"
-            << QString::fromStdString(paths_.build_dir);
+        qDebug() << "[ConfigManager]: Paths settings parsed successfully. "
+                    "Build directory:"
+                 << QString::fromStdString(paths_.build_dir);
 
     } catch (const std::exception& e) {
         throw std::runtime_error("Paths config error: " +
@@ -118,49 +127,110 @@ const Paths& ConfigManager::getPaths() const
     return paths_;
 }
 
+Point2D ConfigManager::getGnbPosition(const uint32_t id) const
+{
+    auto it = simulation_settings_.gnb_positions_.find(id);
+    if (it == simulation_settings_.gnb_positions_.end()) {
+        throw std::runtime_error("[ConfigManager]: GNB ID# " +
+                                 std::to_string(id) +
+                                 " not found in configuration list.");
+    }
+    return it->second;
+}
+
+Point2D ConfigManager::getUePosition(const uint32_t id) const
+{
+    auto it = simulation_settings_.ue_positions_.find(id);
+    if (it == simulation_settings_.ue_positions_.end()) {
+        throw std::runtime_error("[ConfigManager]: UE ID# " +
+                                 std::to_string(id) +
+                                 " not found in configuration list.");
+    }
+    return it->second;
+}
+
 void ConfigManager::validateSection(const YAML::Node& node,
                                     const std::string& sectionName)
 {
     if (!node || !node.IsDefined()) {
-        throw std::runtime_error("Critical error: '" + sectionName +
+        throw std::runtime_error("[ConfigManager]: '" + sectionName +
                                  "' section is missing");
     }
 }
 
-void ConfigManager::getRequiredGnbPositions(const YAML::Node& node)
+bool ConfigManager::initializeFromArgs(const QString& description,
+                                       const EntityType type)
 {
-    const std::string key = "gnb_positions";
-    const auto& pos_gnb_node = node[key];
-    if (!pos_gnb_node) {
-        throw std::runtime_error(
-            "Critical error: missing mandatory parameter: : '" + key + "'");
-    }
-    if (!pos_gnb_node.IsSequence()) {
-        throw std::runtime_error("Parameter : '" + key +
-                                 "' must be a YAML sequence (list)");
+    node_type_ = type;
+    QCommandLineParser parser;
+    parser.setApplicationDescription(description);
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    QCommandLineOption id_option(
+        QStringList() << "i"
+                      << "id",
+        "Unique 32-bit ID for the " + typeToString(node_type_), "id");
+
+    QCommandLineOption configOption({"c", "config"},
+                                    "Path to the configuration file.", "file",
+                                    "config.yaml");
+
+    parser.addOption(id_option);
+    parser.addOption(configOption);
+
+    parser.process(*QCoreApplication::instance());
+
+    if (!parser.isSet(id_option)) {
+        qCritical() << "[ConfigManager]: node ID is required.";
+        parser.showHelp(1);
     }
 
-    auto& target = simulation_settings_.gnb_positions;
-    target.clear();
-    target.reserve(pos_gnb_node.size());
+    node_id_ = parser.value(id_option).toUInt();
 
-    size_t index = 0;
-    for (const auto& item : pos_gnb_node) {
-        if (!item.IsSequence()) {
-            throw std::runtime_error("gnb_positions[" + std::to_string(index) +
-                                     "] must be a sequence like [x, y]");
-        }
-        if (item.size() < 2) {
-            throw std::runtime_error("gnb_positions[" + std::to_string(index) +
-                                     "] is too short. Expected [x, y]");
-        }
+    QString configPath = parser.value(configOption);
+    QFileInfo checkFile(configPath);
 
-        try {
-            target.push_back({item[0].as<double>(), item[1].as<double>()});
-        } catch (const std::exception& e) {
-            throw std::runtime_error("gnb_positions[" + std::to_string(index) +
-                                     "] invalid numeric format: " + e.what());
-        }
-        index++;
+    if (!checkFile.exists() || !checkFile.isFile()) {
+        qCritical() << "[ConfigManager]: CRITICAL ERROR: Configuration file "
+                       "not found at:"
+                    << checkFile.absoluteFilePath();
+        return false;
     }
+
+    const std::string final_path = checkFile.absoluteFilePath().toStdString();
+
+    if (!load(final_path)) {
+        return false;
+    }
+
+    qDebug() << "[ConfigManager]: SUCCESS: Config loaded from "
+             << QString::fromStdString(final_path);
+    return true;
+}
+
+HubSettings ConfigManager::getHubSettings() const
+{
+    return HubSettings{network_settings_.hub_port, network_settings_.hub_id,
+                       network_settings_.broadcast_id,
+                       simulation_settings_.hub_virtual_position};
+}
+
+GnbSettings ConfigManager::getGnbSettings() const
+{
+    return GnbSettings{simulation_settings_.gnb_radius,
+                       network_settings_.radio_frame_duration,
+                       network_settings_.hub_id, network_settings_.broadcast_id,
+                       network_settings_.hub_port};
+}
+
+UeSettings ConfigManager::getUeSettings() const
+{
+    return UeSettings{network_settings_.radio_frame_duration,
+                      network_settings_.hub_id, network_settings_.broadcast_id};
+}
+
+uint32_t ConfigManager::getId() const
+{
+    return node_id_;
 }

@@ -4,6 +4,7 @@
 #include <QMap>
 #include <QObject>
 
+#include "settings.hpp"
 #include "sim_protocol.hpp"
 #include "udp_transport.hpp"
 
@@ -32,9 +33,7 @@ class RadioHub : public QObject
     Q_OBJECT
 
 public:
-    explicit RadioHub(quint16 listen_port, const uint32_t hub_id,
-                      const uint32_t broadcast_id, const QPointF virt_hub_pos,
-                      QObject* parent = nullptr);
+    explicit RadioHub(const HubSettings set, QObject* parent = nullptr);
 
 private slots:
     void onDataReceived(const QByteArray& data, const QHostAddress& sender_ip,

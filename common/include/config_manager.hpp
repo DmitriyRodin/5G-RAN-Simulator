@@ -1,7 +1,7 @@
 #ifndef CONFIGMANAGER_HPP
 #define CONFIGMANAGER_HPP
 
-#include <utility>
+#include <types.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include "settings.hpp"
@@ -18,15 +18,27 @@ public:
     ConfigManager(const ConfigManager&) = delete;
     ConfigManager& operator=(const ConfigManager&) = delete;
 
+    bool initializeFromArgs(const QString& description, const EntityType type);
+
+    HubSettings getHubSettings() const;
+    GnbSettings getGnbSettings() const;
+    UeSettings getUeSettings() const;
+    uint32_t getId() const;
+
     bool load(const std::string& filename);
 
     const NetworkSettings& getNetworkSettings() const;
     const SimulationSettings& getSimulationSettings() const;
     const Paths& getPaths() const;
 
+    Point2D getGnbPosition(const uint32_t id) const;
+    Point2D getUePosition(const uint32_t id) const;
+
 private:
     ConfigManager() = default;
 
+    uint32_t node_id_;
+    EntityType node_type_;
     NetworkSettings network_settings_;
     SimulationSettings simulation_settings_;
     Paths paths_;
@@ -68,8 +80,6 @@ private:
                                      "': " + e.what());
         }
     }
-
-    void getRequiredGnbPositions(const YAML::Node& node);
 };
 
 #endif  // CONFIGMANAGER_HPP

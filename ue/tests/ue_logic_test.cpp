@@ -5,9 +5,10 @@ class UeLogicTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        ue = new UeLogicTestWrapper(TestData::GNB_ID,
-                                    TestData::RADIO_FRAME_DURATION,
-                                    TestData::HUB_ID, TestData::BROADCAST_ID);
+        ue = new UeLogicTestWrapper(
+            TestData::GNB_ID,
+            UeSettings{TestData::RADIO_FRAME_DURATION, TestData::HUB_ID,
+                       TestData::BROADCAST_ID});
     }
 
     void TearDown() override
