@@ -34,10 +34,12 @@ protected slots:
 
 protected:
     void onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
-                                   const QByteArray& payload);
+                                   const QByteArray& payload) override;
 
     void sendBroadcastInfo();
     void handleRegistrationRequest(uint32_t ue_id, const QByteArray& payload);
+
+    QByteArray getRegistrationPayload() const override;
 
 private:
     void handleRachPreamble(uint32_t ueId, const QByteArray& payload);

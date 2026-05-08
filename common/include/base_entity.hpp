@@ -40,6 +40,7 @@ signals:
 protected:
     virtual void sendSimData(ProtocolMsgType protoType,
                              const QByteArray& payload, uint32_t targetId);
+    virtual QByteArray getRegistrationPayload() const;
 
     uint32_t id_;
     EntityType type_;
