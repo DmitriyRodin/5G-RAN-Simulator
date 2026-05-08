@@ -76,10 +76,17 @@ void BaseEntity::registerAtHub(const QHostAddress& hub_address,
     hub_address_ = hub_address;
     hub_port_ = hub_port;
 
+    const QByteArray payload = getRegistrationPayload();
+
     const QByteArray packet = SimProtocol::buildPacket(
-        id_, type_, hub_id_, SimMessageType::Registration, position_);
+        id_, type_, hub_id_, SimMessageType::Registration, position_, payload);
 
     transport_->sendData(packet, hub_address_, hub_port_);
+}
+
+QByteArray BaseEntity::getRegistrationPayload() const
+{
+    return QByteArray();
 }
 
 void BaseEntity::handleRegistrationResponse(QDataStream& ds)

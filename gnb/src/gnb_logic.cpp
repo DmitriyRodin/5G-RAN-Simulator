@@ -235,6 +235,15 @@ void GnbLogic::handleRegistrationRequest(uint32_t ue_id,
     sendSimData(ProtocolMsgType::RrcSetup, response_data, ue_id);
 }
 
+QByteArray GnbLogic::getRegistrationPayload() const
+{
+    QByteArray payload;
+    QDataStream ds(&payload, QIODevice::WriteOnly);
+    ds.setByteOrder(QDataStream::BigEndian);
+    ds << radius_;
+    return payload;
+}
+
 void GnbLogic::handleMeasurementReport(uint32_t ue_id,
                                        const QByteArray& payload)
 {
