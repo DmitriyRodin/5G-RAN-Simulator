@@ -46,6 +46,16 @@ struct HubSettings {
     uint32_t hub_id;
     uint32_t broadcast_id;
     Point2D virt_hub_pos;
+
+    HubSettings() = delete;
+
+    HubSettings(uint16_t port, uint32_t hid, uint32_t bid, Point2D vhp)
+        : hub_port(port)
+        , hub_id(hid)
+        , broadcast_id(bid)
+        , virt_hub_pos(vhp)
+    {
+    }
 };
 
 struct GnbSettings {
@@ -54,6 +64,18 @@ struct GnbSettings {
     uint32_t hub_id;
     uint32_t broadcast_id;
     uint16_t hub_port;
+
+    GnbSettings() = delete;
+
+    GnbSettings(double radius, int rfd, uint32_t hid, uint32_t bid,
+                uint16_t port)
+        : gnb_radius(radius)
+        , radio_frame_duration(rfd)
+        , hub_id(hid)
+        , broadcast_id(bid)
+        , hub_port(port)
+    {
+    }
 };
 
 struct UeSettings {
@@ -61,6 +83,16 @@ struct UeSettings {
     uint32_t hub_id;
     uint32_t broadcast_id;
     uint16_t hub_port;
+
+    UeSettings() = delete;
+
+    UeSettings(int rfd, uint32_t hid, uint32_t bid, uint16_t port)
+        : radio_frame_duration(rfd)
+        , hub_id(hid)
+        , broadcast_id(bid)
+        , hub_port(port)
+    {
+    }
 };
 
 #endif  // SETTINGS_HPP

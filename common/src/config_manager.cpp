@@ -227,7 +227,8 @@ GnbSettings ConfigManager::getGnbSettings() const
 UeSettings ConfigManager::getUeSettings() const
 {
     return UeSettings{network_settings_.radio_frame_duration,
-                      network_settings_.hub_id, network_settings_.broadcast_id};
+                      network_settings_.hub_id, network_settings_.broadcast_id,
+                      network_settings_.hub_port};
 }
 
 uint32_t ConfigManager::getId() const

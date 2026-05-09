@@ -41,7 +41,8 @@ void SimulationController::setupGnbStations()
             id, GnbSettings{simulation_settings_.gnb_radius,
                             network_settings_.radio_frame_duration,
                             network_settings_.hub_id,
-                            network_settings_.broadcast_id});
+                            network_settings_.broadcast_id,
+                            network_settings_.hub_port});
         gnb->setPosition({pos.X, pos.Y});
         gnb->setTxPower(network_settings_.tx_power_db);
 
