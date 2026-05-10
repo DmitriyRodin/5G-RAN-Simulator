@@ -17,6 +17,7 @@ constexpr uint32_t GNB_ID = 1;
 constexpr double RADIUS = 1200.0;
 constexpr int RADIO_FRAME_DURATION = 10;
 constexpr uint32_t HUB_ID = 0;
+constexpr uint16_t HUB_PORT = 5555;
 constexpr uint32_t BROADCAST_ID = 0xFFFFFFFF;
 };  // namespace TestData
 
@@ -63,7 +64,8 @@ public:
     MockGnbLogic(uint32_t id)
         : GnbLogic(id,
                    GnbSettings{TestData::RADIUS, TestData::RADIO_FRAME_DURATION,
-                               TestData::HUB_ID, TestData::BROADCAST_ID})
+                               TestData::HUB_ID, TestData::BROADCAST_ID,
+                               TestData::HUB_PORT})
     {
     }
 

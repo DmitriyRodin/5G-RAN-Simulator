@@ -8,7 +8,7 @@ protected:
         ue = new UeLogicTestWrapper(
             TestData::GNB_ID,
             UeSettings{TestData::RADIO_FRAME_DURATION, TestData::HUB_ID,
-                       TestData::BROADCAST_ID});
+                       TestData::BROADCAST_ID, TestData::HUB_PORT});
     }
 
     void TearDown() override
