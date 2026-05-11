@@ -20,23 +20,22 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    const auto set = ConfigManager::instance().getGnbSettings();
-    const auto node_id = ConfigManager::instance().getId();
+    auto context = ConfigManager::instance().getGnbContext();
 
-    auto gnb = std::make_unique<GnbLogic>(node_id, set);
-
-    try {
-        const auto position = ConfigManager::instance().getGnbPosition(node_id);
-        gnb->setPosition(QPointF{position.X, position.Y});
-    } catch (const std::exception& e) {
-        qWarning() << "Error: " << e.what();
+    if (!context) {
         return EXIT_FAILURE;
     }
 
-    if (gnb->setupNetwork(NetworkParam::EPHEMERAL_PORT)) {
-        gnb->registerAtHub(QHostAddress::LocalHost, set.hub_port);
-        gnb->run();
+    auto gnb = std::make_unique<GnbLogic>(context->id, context->settings);
+
+    gnb->setPosition(QPointF{context->position.X, context->position.Y});
+
+    if (!gnb->setupNetwork(NetworkParam::EPHEMERAL_PORT)) {
+        return EXIT_FAILURE;
     }
+
+    gnb->registerAtHub(QHostAddress::LocalHost, context->settings.hub_port);
+    gnb->run();
 
     return a.exec();
 }

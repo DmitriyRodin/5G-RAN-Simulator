@@ -127,24 +127,20 @@ const Paths& ConfigManager::getPaths() const
     return paths_;
 }
 
-Point2D ConfigManager::getGnbPosition(const uint32_t id) const
+std::optional<Point2D> ConfigManager::getGnbPosition(const uint32_t id) const
 {
     auto it = simulation_settings_.gnb_positions_.find(id);
     if (it == simulation_settings_.gnb_positions_.end()) {
-        throw std::runtime_error("[ConfigManager]: GNB ID# " +
-                                 std::to_string(id) +
-                                 " not found in configuration list.");
+        return std::nullopt;
     }
     return it->second;
 }
 
-Point2D ConfigManager::getUePosition(const uint32_t id) const
+std::optional<Point2D> ConfigManager::getUePosition(const uint32_t id) const
 {
     auto it = simulation_settings_.ue_positions_.find(id);
     if (it == simulation_settings_.ue_positions_.end()) {
-        throw std::runtime_error("[ConfigManager]: UE ID# " +
-                                 std::to_string(id) +
-                                 " not found in configuration list.");
+        return std::nullopt;
     }
     return it->second;
 }
@@ -234,4 +230,32 @@ UeSettings ConfigManager::getUeSettings() const
 uint32_t ConfigManager::getId() const
 {
     return node_id_;
+}
+
+std::optional<GnbRuntimeContext> ConfigManager::getGnbContext() const
+{
+    const uint32_t node_id = getId();
+
+    const auto pos = getGnbPosition(node_id);
+    if (pos) {
+        return GnbRuntimeContext{node_id, getGnbSettings(), pos.value()};
+    }
+
+    qCritical() << "[ConfigManager]: CRITICAL - No position found for GNB ID:"
+                << node_id;
+    return std::nullopt;
+}
+
+std::optional<UeRuntimeContext> ConfigManager::getUeContext() const
+{
+    const uint32_t node_id = getId();
+
+    const auto pos = getUePosition(node_id);
+    if (pos) {
+        return UeRuntimeContext{node_id, getUeSettings(), pos.value()};
+    }
+
+    qCritical() << "[ConfigManager]: CRITICAL - No position found for UE ID:"
+                << node_id;
+    return std::nullopt;
 }

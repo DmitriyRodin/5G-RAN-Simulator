@@ -95,4 +95,36 @@ struct UeSettings {
     }
 };
 
+struct GnbRuntimeContext {
+    uint32_t id;
+    GnbSettings settings;
+    Point2D position;
+
+    GnbRuntimeContext() = delete;
+
+    GnbRuntimeContext(const uint32_t& node_id, const GnbSettings& set,
+                      const Point2D& pos)
+        : id(node_id)
+        , settings(set)
+        , position(pos)
+    {
+    }
+};
+
+struct UeRuntimeContext {
+    uint32_t id;
+    UeSettings settings;
+    Point2D position;
+
+    UeRuntimeContext() = delete;
+
+    UeRuntimeContext(const uint32_t& node_id, const UeSettings& set,
+                     const Point2D& pos)
+        : id(node_id)
+        , settings(set)
+        , position(pos)
+    {
+    }
+};
+
 #endif  // SETTINGS_HPP
