@@ -58,8 +58,7 @@ bool BaseEntity::setupNetwork(quint16 port)
 
     if (!connection) {
         qCritical() << "FATAL ERROR: Failed to connect UdpTransport signal!";
-    } else {
-        qDebug() << "Connection established successfully";
+        return false;
     }
 
     qDebug() << QString("[Entity %1 # %2] Network is UP on port %3")

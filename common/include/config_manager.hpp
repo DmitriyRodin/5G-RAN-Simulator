@@ -21,9 +21,9 @@ public:
     bool initializeFromArgs(const QString& description, const EntityType type);
 
     HubSettings getHubSettings() const;
-    GnbSettings getGnbSettings() const;
-    UeSettings getUeSettings() const;
-    uint32_t getId() const;
+
+    std::optional<GnbRuntimeContext> getGnbContext() const;
+    std::optional<UeRuntimeContext> getUeContext() const;
 
     bool load(const std::string& filename);
 
@@ -31,8 +31,8 @@ public:
     const SimulationSettings& getSimulationSettings() const;
     const Paths& getPaths() const;
 
-    Point2D getGnbPosition(const uint32_t id) const;
-    Point2D getUePosition(const uint32_t id) const;
+    std::optional<Point2D> getGnbPosition(const uint32_t id) const;
+    std::optional<Point2D> getUePosition(const uint32_t id) const;
 
 private:
     ConfigManager() = default;
@@ -49,6 +49,10 @@ private:
 
     void validateSection(const YAML::Node& node,
                          const std::string& sectionName);
+    uint32_t getId() const;
+
+    GnbSettings getGnbSettings() const;
+    UeSettings getUeSettings() const;
 
     template <typename T>
     T getRequired(const YAML::Node& node, const std::string& key)
