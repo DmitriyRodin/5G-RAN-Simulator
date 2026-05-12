@@ -8,6 +8,7 @@
 #include <QDateTime>
 
 #include "gnb_logic.hpp"
+#include "settings.hpp"
 #include "types.hpp"
 
 using namespace ::testing;
@@ -16,9 +17,16 @@ namespace TestData {
 constexpr uint32_t GNB_ID = 1;
 constexpr double RADIUS = 1200.0;
 constexpr int RADIO_FRAME_DURATION = 10;
+constexpr double TXP = 43.0;
 constexpr uint32_t HUB_ID = 0;
 constexpr uint16_t HUB_PORT = 5555;
 constexpr uint32_t BROADCAST_ID = 0xFFFFFFFF;
+constexpr Point2D VIRT_POS{0.0, 0.0};
+const std::string ADDRESS("127.0.0.1");
+const RadioSettings RADIO{RADIO_FRAME_DURATION, TXP};
+constexpr Cell CELL{100};
+const HubSettings HUB_SET{HUB_PORT, HUB_ID, BROADCAST_ID, VIRT_POS, ADDRESS};
+const GnbSettings GNB_SETTINGS(HUB_SET, RADIO, CELL, RADIUS);
 };  // namespace TestData
 
 MATCHER_P4(HasSib1Data, gnb_id, tac, mcc, mnc, "")
@@ -61,11 +69,8 @@ MATCHER_P2(HasRegistrationResponse, expected_status, expected_crnti, "")
 class MockGnbLogic : public GnbLogic
 {
 public:
-    MockGnbLogic(uint32_t id)
-        : GnbLogic(id,
-                   GnbSettings{TestData::RADIUS, TestData::RADIO_FRAME_DURATION,
-                               TestData::HUB_ID, TestData::BROADCAST_ID,
-                               TestData::HUB_PORT})
+    MockGnbLogic(uint32_t id, GnbSettings set)
+        : GnbLogic(id, set)
     {
     }
 

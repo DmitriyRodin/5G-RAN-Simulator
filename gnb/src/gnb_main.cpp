@@ -26,15 +26,15 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    auto gnb = std::make_unique<GnbLogic>(context->id, context->settings);
+    auto gnb = std::make_unique<GnbLogic>(context->id, context->set);
 
-    gnb->setPosition(QPointF{context->position.X, context->position.Y});
+    gnb->setPosition(QPointF{context->pos.X, context->pos.Y});
 
     if (!gnb->setupNetwork(NetworkParam::EPHEMERAL_PORT)) {
         return EXIT_FAILURE;
     }
 
-    gnb->registerAtHub(QHostAddress::LocalHost, context->settings.hub_port);
+    gnb->registerAtHub();
     gnb->run();
 
     return a.exec();

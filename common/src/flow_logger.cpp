@@ -1,9 +1,16 @@
 #include "flow_logger.hpp"
 
-void FlowLogger::setup(const uint32_t hub_id, const uint32_t broadcast_id)
+FlowLoggerSetupInfo::FlowLoggerSetupInfo(const uint32_t hub,
+                                         const uint32_t broadcast)
+    : hub_id(hub)
+    , broadcast_id(broadcast)
 {
-    hub_id_ = hub_id;
-    broadcast_id_ = broadcast_id;
+}
+
+void FlowLogger::setup(const FlowLoggerSetupInfo info)
+{
+    hub_id_ = info.hub_id;
+    broadcast_id_ = info.broadcast_id;
     initialized_ = true;
 }
 

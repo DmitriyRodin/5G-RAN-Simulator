@@ -10,17 +10,28 @@
 #include "ue_logic.hpp"
 
 namespace TestData {
-constexpr uint32_t GNB_ID = 101;
+constexpr uint32_t UE_ID = 101;
 constexpr double RADIUS = 1200.0;
 constexpr int RADIO_FRAME_DURATION = 10;
+constexpr double TXP = 5.0;
 constexpr uint32_t HUB_ID = 0;
 constexpr uint16_t HUB_PORT = 5555;
 constexpr uint32_t BROADCAST_ID = 0xFFFFFFFF;
+constexpr Point2D VIRT_POS{0.0, 0.0};
+const std::string ADDRESS("127.0.0.1");
+const RadioSettings RADIO{RADIO_FRAME_DURATION, TXP};
+constexpr Cell CELL{100};
+const HubSettings HUB_SET{HUB_PORT, HUB_ID, BROADCAST_ID, VIRT_POS, ADDRESS};
+const UeSettings UE_SETTINGS(HUB_SET, RADIO, CELL);
 };  // namespace TestData
 
 class UeLogicTestWrapper : public UeLogic
 {
 public:
+    UeLogicTestWrapper(uint32_t id, UeSettings set)
+        : UeLogic(id, set)
+    {
+    }
     using UeLogic::onProtocolMessageReceived;
     using UeLogic::UeLogic;
 

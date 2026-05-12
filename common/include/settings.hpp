@@ -11,120 +11,117 @@ struct Point2D {
     double Y;
 };
 
-struct NetworkSettings {
-    uint16_t hub_port;
-    uint32_t hub_id;
-    uint32_t broadcast_id;
-
-    uint32_t gnb_id_start;
-    uint32_t ue_id_start;
-
-    uint16_t tracking_area_code;
-
-    double tx_power_db;
-    int radio_frame_duration;
-};
-
-struct SimulationSettings {
-    int gnb_count;
-    int ue_count;
-
-    std::unordered_map<uint32_t, Point2D> gnb_positions_;
-    std::unordered_map<uint32_t, Point2D> ue_positions_;
-
-    double gnb_radius;
-
-    Point2D hub_virtual_position;
-};
-
 struct Paths {
     std::string build_dir;
 };
 
 struct HubSettings {
-    uint16_t hub_port;
-    uint32_t hub_id;
+    uint16_t port;
+    uint32_t id;
     uint32_t broadcast_id;
-    Point2D virt_hub_pos;
+    Point2D virt_pos;
+    std::string address;
 
     HubSettings() = delete;
 
-    HubSettings(uint16_t port, uint32_t hid, uint32_t bid, Point2D vhp)
-        : hub_port(port)
-        , hub_id(hid)
-        , broadcast_id(bid)
-        , virt_hub_pos(vhp)
-    {
-    }
+    HubSettings(uint16_t p, uint32_t hid, uint32_t bid, Point2D vhp,
+                std::string add);
 };
 
-struct GnbSettings {
-    double gnb_radius;
+struct Cell {
+    uint16_t tracking_area_code;
+
+    Cell() = delete;
+};
+
+struct RadioSettings {
     int radio_frame_duration;
-    uint32_t hub_id;
-    uint32_t broadcast_id;
-    uint16_t hub_port;
+    double tx_power_db;
+
+    RadioSettings() = delete;
+};
+
+struct NodeSettings {
+    HubSettings hub;
+    RadioSettings radio;
+    Cell cell;
+
+    NodeSettings() = delete;
+
+    NodeSettings(HubSettings hub_set, RadioSettings radio_set, Cell cell_set);
+};
+
+struct GnbSettings : NodeSettings {
+    double radius;
 
     GnbSettings() = delete;
-
-    GnbSettings(double radius, int rfd, uint32_t hid, uint32_t bid,
-                uint16_t port)
-        : gnb_radius(radius)
-        , radio_frame_duration(rfd)
-        , hub_id(hid)
-        , broadcast_id(bid)
-        , hub_port(port)
-    {
-    }
+    GnbSettings(HubSettings h, RadioSettings r_set, Cell c, double r);
 };
 
-struct UeSettings {
-    int radio_frame_duration;
-    uint32_t hub_id;
-    uint32_t broadcast_id;
-    uint16_t hub_port;
-
+struct UeSettings : NodeSettings {
     UeSettings() = delete;
-
-    UeSettings(int rfd, uint32_t hid, uint32_t bid, uint16_t port)
-        : radio_frame_duration(rfd)
-        , hub_id(hid)
-        , broadcast_id(bid)
-        , hub_port(port)
-    {
-    }
+    UeSettings(HubSettings hub_set, RadioSettings radio_set, Cell cell_set);
 };
 
-struct GnbRuntimeContext {
+struct BaseNodeContext {
     uint32_t id;
-    GnbSettings settings;
-    Point2D position;
+    Point2D pos;
+
+    BaseNodeContext() = delete;
+    BaseNodeContext(uint32_t node_id, Point2D position);
+};
+
+struct GnbRuntimeContext : BaseNodeContext {
+    GnbSettings set;
 
     GnbRuntimeContext() = delete;
 
-    GnbRuntimeContext(const uint32_t& node_id, const GnbSettings& set,
-                      const Point2D& pos)
-        : id(node_id)
-        , settings(set)
-        , position(pos)
-    {
-    }
+    GnbRuntimeContext(const uint32_t node_id, const GnbSettings settings,
+                      const Point2D pos);
 };
 
-struct UeRuntimeContext {
-    uint32_t id;
-    UeSettings settings;
-    Point2D position;
+struct UeRuntimeContext : BaseNodeContext {
+    UeSettings set;
 
     UeRuntimeContext() = delete;
+    UeRuntimeContext(uint32_t node_id, UeSettings settings, Point2D pos);
+};
 
-    UeRuntimeContext(const uint32_t& node_id, const UeSettings& set,
-                     const Point2D& pos)
-        : id(node_id)
-        , settings(set)
-        , position(pos)
-    {
-    }
+struct Positions {
+    std::unordered_map<uint32_t, Point2D> gnbs;
+    std::unordered_map<uint32_t, Point2D> ues;
+};
+
+struct SimulationSettings {
+    bool deploy_local_nodes = true;
+
+    uint32_t gnb_count;
+    uint32_t ue_count;
+
+    uint32_t gnb_id_start;
+    uint32_t ue_id_start;
+
+    SimulationSettings() = delete;
+};
+
+struct FlowLoggerSetupInfo;
+
+struct SettingsPack {
+    HubSettings hub;
+    UeSettings ue;
+    GnbSettings gnb;
+    SimulationSettings sim;
+    Positions positions;
+    Paths paths;
+
+    SettingsPack() = delete;
+
+    SettingsPack(HubSettings h, UeSettings u, GnbSettings g,
+                 SimulationSettings s, Positions pos, Paths p);
+
+    FlowLoggerSetupInfo getFlowLoggerInfo() const;
+
+    uint32_t getBroadcast() const;
 };
 
 #endif  // SETTINGS_HPP

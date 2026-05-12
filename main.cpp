@@ -15,13 +15,15 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    NetworkSettings net = config.getNetworkSettings();
-    SimulationSettings sim = config.getSimulationSettings();
-    Paths paths = config.getPaths();
+    auto pack = config.getSettingsPack();
+    if (!pack) {
+        qCritical() << "SettingsPack is empty";
+        return EXIT_FAILURE;
+    }
 
-    FlowLogger::setup(net.hub_id, net.broadcast_id);
+    FlowLogger::setup(pack->getFlowLoggerInfo());
 
-    auto controller = std::make_shared<SimulationController>(net, sim, paths);
+    auto controller = std::make_shared<SimulationController>(pack.value());
 
     MainWindow w(controller);
     controller->startSimulation();

@@ -5,10 +5,7 @@ class UeLogicTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        ue = new UeLogicTestWrapper(
-            TestData::GNB_ID,
-            UeSettings{TestData::RADIO_FRAME_DURATION, TestData::HUB_ID,
-                       TestData::BROADCAST_ID, TestData::HUB_PORT});
+        ue = new UeLogicTestWrapper(TestData::UE_ID, TestData::UE_SETTINGS);
     }
 
     void TearDown() override
@@ -163,7 +160,7 @@ TEST_F(UeLogicTest, SendRegistrationRequestPayload)
     in >> model >> id;
 
     EXPECT_STREQ(model.toStdString().c_str(), "UE-Capabilities-Model-X");
-    EXPECT_EQ(id, TestData::GNB_ID);
+    EXPECT_EQ(id, TestData::UE_ID);
 }
 
 TEST_F(UeLogicTest, HandleRrcReleaseAndRestart)

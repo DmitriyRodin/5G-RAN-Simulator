@@ -1,16 +1,39 @@
-network:
-  hub_port: 5555
-  gnb_id_start: 1
-  ue_id_start: 501
-  tracking_area_code: 100
-  tx_power_db: 43.0
-  radio_frame_duration: 10
-  hub_id: 0
+hub_settings:
+  id: 0
+  port: 5555
   broadcast_id: 4294967295
+  virtual_position: [0, 0]
+  address: "127.0.0.1"
+
+paths:
+  build_dir: "../build"
+
+
+gnb_settings:
+  radius: 1200
+  node_settings:
+    cell:
+      tracking_area_code: 100
+    radio:
+      radio_frame_duration: 10
+      tx_power_db: 43.0
+
+ue_settings:
+  node_settings:
+    cell:
+      tracking_area_code: 100
+    radio:
+      radio_frame_duration: 10
+      tx_power_db: 5.0
 
 simulation:
+  deploy_local_node: true
+  gnb_id_start: 1
+  ue_id_start: 501
   gnb_count: 3
   ue_count: 15
+
+positions:
   gnb_positions_list:
     - id: 101
       pos: [ -1800, -1000 ]
@@ -18,8 +41,7 @@ simulation:
       pos: [ 1800, -1400 ]
     - id: 103
       pos: [ 0, 1300 ]
-  gnb_radius: 1200
-  hub_virtual_position: [0, 0]
+
   ue_positions_list:
     - id: 501
       pos: [ 2300, -1300 ]
@@ -51,5 +73,4 @@ simulation:
       pos: [ 1600, -3000 ]
     - id: 515
       pos: [ 1500, -2540 ]
-paths:
-  build_dir: "../build"
+

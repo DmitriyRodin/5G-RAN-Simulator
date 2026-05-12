@@ -9,17 +9,16 @@
 RadioHub::RadioHub(const HubSettings set, QObject* parent)
     : QObject(parent)
     , transport_(nullptr)
-    , hub_id_(set.hub_id)
+    , hub_id_(set.id)
     , broadcast_id_(set.broadcast_id)
-    , position_(QPointF(set.virt_hub_pos.X, set.virt_hub_pos.Y))
+    , position_(QPointF(set.virt_pos.X, set.virt_pos.Y))
 {
     transport_ = new UdpTransport(this);
 
-    if (transport_->init(set.hub_port)) {
+    if (transport_->init(set.port)) {
         connect(transport_, &UdpTransport::dataReceived, this,
                 &RadioHub::onDataReceived);
-        qDebug() << "[RadioHub] Core started. Listening on port:"
-                 << set.hub_port;
+        qDebug() << "[RadioHub] Core started. Listening on port:" << set.port;
     }
 }
 

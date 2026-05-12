@@ -20,14 +20,12 @@ public:
 
     bool initializeFromArgs(const QString& description, const EntityType type);
 
+    std::optional<SettingsPack> getSettingsPack() const;
     HubSettings getHubSettings() const;
-
     std::optional<GnbRuntimeContext> getGnbContext() const;
     std::optional<UeRuntimeContext> getUeContext() const;
 
     bool load(const std::string& filename);
-
-    const NetworkSettings& getNetworkSettings() const;
     const SimulationSettings& getSimulationSettings() const;
     const Paths& getPaths() const;
 
@@ -39,13 +37,14 @@ private:
 
     uint32_t node_id_;
     EntityType node_type_;
-    NetworkSettings network_settings_;
-    SimulationSettings simulation_settings_;
-    Paths paths_;
+    std::optional<SettingsPack> pack_;
 
-    void parseNetwork(const YAML::Node& node);
-    void parseSimulation(const YAML::Node& node);
-    void parsePaths(const YAML::Node& node);
+    HubSettings parseHub(const YAML::Node& node);
+    UeSettings parseUe(const YAML::Node& node, const HubSettings hub_set);
+    GnbSettings parseGnb(const YAML::Node& root, const HubSettings hub_set);
+    SimulationSettings parseSimulation(const YAML::Node& node);
+    Positions parsePositions(const YAML::Node& node);
+    Paths parsePaths(const YAML::Node& node);
 
     void validateSection(const YAML::Node& node,
                          const std::string& sectionName);
@@ -53,6 +52,7 @@ private:
 
     GnbSettings getGnbSettings() const;
     UeSettings getUeSettings() const;
+    Positions getPositions() const;
 
     template <typename T>
     T getRequired(const YAML::Node& node, const std::string& key)

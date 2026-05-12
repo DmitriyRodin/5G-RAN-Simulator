@@ -3,16 +3,15 @@
 #include <QDebug>
 #include <QNetworkDatagram>
 
+#include "base_entity.hpp"
 #include "sim_protocol.hpp"
 
-BaseEntity::BaseEntity(uint32_t id, const EntityType& type,
-                       const uint32_t hub_id, const uint32_t broadcast_id,
+BaseEntity::BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
                        QObject* parent)
     : QObject(parent)
     , id_(id)
     , type_(type)
-    , hub_id_(hub_id)
-    , broadcast_id_(broadcast_id)
+    , hub_set_(hub_set)
     , is_registered_(false)
 {
 }
@@ -69,18 +68,17 @@ bool BaseEntity::setupNetwork(quint16 port)
     return true;
 }
 
-void BaseEntity::registerAtHub(const QHostAddress& hub_address,
-                               quint16 hub_port)
+void BaseEntity::registerAtHub()
 {
-    hub_address_ = hub_address;
-    hub_port_ = hub_port;
-
     const QByteArray payload = getRegistrationPayload();
 
     const QByteArray packet = SimProtocol::buildPacket(
-        id_, type_, hub_id_, SimMessageType::Registration, position_, payload);
+        id_, type_, hub_set_.id, SimMessageType::Registration, position_,
+        payload);
 
-    transport_->sendData(packet, hub_address_, hub_port_);
+    transport_->sendData(packet,
+                         QHostAddress(QString::fromStdString(hub_set_.address)),
+                         hub_set_.port);
 }
 
 QByteArray BaseEntity::getRegistrationPayload() const
@@ -118,8 +116,9 @@ void BaseEntity::sendSimData(ProtocolMsgType proto_type,
         SimProtocol::buildPacket(id_, type_, target_id, SimMessageType::Data,
                                  position_, protocolPayload);
 
-    sendingResult result =
-        transport_->sendData(finalPacket, hub_address_, hub_port_);
+    sendingResult result = transport_->sendData(
+        finalPacket, QHostAddress(QString::fromStdString(hub_set_.address)),
+        hub_set_.port);
 
     if (result.is_socket_error_) {
         qWarning() << QString("[%1 #%2] Send Error to %3: %4")
@@ -142,8 +141,8 @@ void BaseEntity::handleIncomingRawData(const QByteArray& data,
         return;
     }
 
-    if (!decoded.isForMe(id_, broadcast_id_) &&
-        !decoded.isBroadcast(broadcast_id_)) {
+    if (!decoded.isForMe(id_, hub_set_.broadcast_id) &&
+        !decoded.isBroadcast(hub_set_.broadcast_id)) {
         return;
     }
 

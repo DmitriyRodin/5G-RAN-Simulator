@@ -8,6 +8,7 @@
 #include <QPoint>
 #include <QUdpSocket>
 
+#include "settings.hpp"
 #include "types.hpp"
 #include "udp_transport.hpp"
 
@@ -15,14 +16,14 @@ class BaseEntity : public QObject
 {
     Q_OBJECT
 public:
-    BaseEntity(uint32_t id, const EntityType& type, const uint32_t hub_id,
-               const uint32_t broadcast_id, QObject* parent = nullptr);
+    BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
+               QObject* parent = nullptr);
     virtual ~BaseEntity();
 
     void stop();
     virtual void run() = 0;
     bool setupNetwork(quint16 port);
-    void registerAtHub(const QHostAddress& hub_address, quint16 hub_port);
+    void registerAtHub();
     void handleRegistrationResponse(QDataStream& ds);
 
     EntityType getType();
@@ -44,14 +45,8 @@ protected:
 
     uint32_t id_;
     EntityType type_;
-
     UdpTransport* transport_ = nullptr;
-
-    QHostAddress hub_address_;
-    quint16 hub_port_;
-    uint32_t hub_id_;
-    uint32_t broadcast_id_;
-
+    HubSettings hub_set_;
     bool is_registered_;
     QPointF position_;
     double tx_power_dbm_;

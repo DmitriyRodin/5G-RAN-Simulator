@@ -5,7 +5,8 @@ class GnbLogicTest : public Test
 protected:
     void SetUp() override
     {
-        gnb = new StrictMock<MockGnbLogic>(TestData::GNB_ID);
+        gnb = new StrictMock<MockGnbLogic>(TestData::GNB_ID,
+                                           TestData::GNB_SETTINGS);
 
         config.tac = 123;
         config.mcc = 255;

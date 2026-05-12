@@ -23,15 +23,15 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    auto ue = std::make_unique<UeLogic>(context->id, context->settings);
+    auto ue = std::make_unique<UeLogic>(context->id, context->set);
 
-    ue->setPosition(QPointF{context->position.X, context->position.Y});
+    ue->setPosition(QPointF{context->pos.X, context->pos.Y});
 
     if (!ue->setupNetwork(NetworkParam::EPHEMERAL_PORT)) {
         return EXIT_FAILURE;
     }
 
-    ue->registerAtHub(QHostAddress::LocalHost, context->settings.hub_port);
+    ue->registerAtHub();
     ue->run();
 
     return a.exec();
