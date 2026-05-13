@@ -10,12 +10,21 @@
 
 static QMutex logMutex;
 
+struct FlowLoggerSetupInfo {
+    uint32_t hub_id;
+    uint32_t broadcast_id;
+
+    FlowLoggerSetupInfo() = delete;
+
+    FlowLoggerSetupInfo(const uint32_t hub, const uint32_t broadcast);
+};
+
 class FlowLogger
 {
 public:
     FlowLogger() = delete;
 
-    static void setup(uint32_t hub_id, uint32_t broadcast_id);
+    static void setup(const FlowLoggerSetupInfo info);
 
     static void log(const EntityType type, const uint32_t from,
                     const uint32_t to, const ProtocolMsgType msg_type,

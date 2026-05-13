@@ -14,10 +14,7 @@ class SimulationController : public QObject
 {
     Q_OBJECT
 public:
-    explicit SimulationController(const NetworkSettings& net,
-                                  const SimulationSettings& sim,
-                                  const Paths& paths,
-                                  QObject* parent = nullptr);
+    explicit SimulationController(SettingsPack pack, QObject* parent = nullptr);
 
     void startSimulation();
     QList<std::shared_ptr<GnbLogic>> getGnbs() const;
@@ -27,9 +24,7 @@ private:
     void setupGnbStations();
     void setupUeDevices();
 
-    NetworkSettings network_settings_;
-    SimulationSettings simulation_settings_;
-    Paths paths_;
+    SettingsPack set_pack_;
 
     RadioHub* hub_ = nullptr;
     QHash<uint32_t, std::shared_ptr<GnbLogic>> gnbs_;

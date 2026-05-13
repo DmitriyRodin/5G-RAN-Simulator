@@ -6,11 +6,11 @@
 #include "flow_logger.hpp"
 
 GnbLogic::GnbLogic(const uint32_t id, const GnbSettings set, QObject* parent)
-    : BaseEntity(id, EntityType::GNB, set.hub_id, set.broadcast_id, parent)
-    , radius_(set.gnb_radius)
+    : BaseEntity(id, EntityType::GNB, set.hub, parent)
+    , radius_(set.radius)
 {
     main_timer_ = new QTimer(this);
-    main_timer_->setInterval(set.radio_frame_duration);
+    main_timer_->setInterval(set.radio.radio_frame_duration);
     connect(main_timer_, &QTimer::timeout, this, &GnbLogic::onTick);
     last_broadcast_ = std::chrono::steady_clock::now();
     connect(this, &BaseEntity::registrationAtRadioHubConfirmed, this,
@@ -104,8 +104,9 @@ void GnbLogic::sendBroadcastInfo()
     ds << static_cast<int16_t>(cellConfig_.mcc);
     ds << static_cast<int16_t>(cellConfig_.mnc);
 
-    sendSimData(ProtocolMsgType::Sib1, broadcast_info, broadcast_id_);
-    FlowLogger::log(type_, id_, broadcast_id_, ProtocolMsgType::Sib1, false);
+    sendSimData(ProtocolMsgType::Sib1, broadcast_info, hub_set_.broadcast_id);
+    FlowLogger::log(type_, id_, hub_set_.broadcast_id, ProtocolMsgType::Sib1,
+                    false);
 }
 
 void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)

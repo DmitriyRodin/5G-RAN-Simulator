@@ -25,7 +25,7 @@ public:
     GnbLogic(const uint32_t id, const GnbSettings set,
              QObject* parent = nullptr);
     void setCellConfig(const GnbCellConfig& config);
-    void run();
+    void run() override;
     uint32_t getConnectedUeCount() const;
     double getRadius() const;
 
