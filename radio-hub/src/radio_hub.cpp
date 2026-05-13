@@ -8,18 +8,28 @@
 
 RadioHub::RadioHub(const HubSettings set, QObject* parent)
     : QObject(parent)
-    , transport_(nullptr)
+    , transport_(new UdpTransport(this))
+    , port_(set.port)
     , hub_id_(set.id)
     , broadcast_id_(set.broadcast_id)
     , position_(QPointF(set.virt_pos.X, set.virt_pos.Y))
+    , address_(set.address)
 {
-    transport_ = new UdpTransport(this);
+}
 
-    if (transport_->init(set.port)) {
-        connect(transport_, &UdpTransport::dataReceived, this,
-                &RadioHub::onDataReceived);
-        qDebug() << "[RadioHub] Core started. Listening on port:" << set.port;
+bool RadioHub::run()
+{
+    if (!transport_->init(port_)) {
+        qCritical() << "[RadioHub] Failed to bind to port " << port_;
+        return false;
     }
+
+    connect(transport_, &UdpTransport::dataReceived, this,
+            &RadioHub::onDataReceived);
+
+    qDebug() << "[RadioHub] Core started. Listening on port:" << port_;
+
+    return true;
 }
 
 void RadioHub::onDataReceived(const QByteArray& raw_data,
@@ -68,6 +78,7 @@ void RadioHub::handleRegistration(const uint32_t node_id,
                                  sender_port, position};
                 qDebug() << QString("[RadioHub] UE %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
+                emit nodeRegistered(node_id, EntityType::UE, position);
                 break;
             }
             case EntityType::GNB: {
@@ -78,6 +89,7 @@ void RadioHub::handleRegistration(const uint32_t node_id,
                 qDebug()
                     << QString("[RadioHub] GNB %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
+                emit nodeRegistered(node_id, EntityType::GNB, position);
                 break;
             }
             case EntityType::RadioHub: {

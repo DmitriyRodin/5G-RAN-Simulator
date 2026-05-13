@@ -12,8 +12,24 @@ SimulationController::SimulationController(SettingsPack pack, QObject* parent)
 
 void SimulationController::startSimulation()
 {
-    setupGnbStations();
-    setupUeDevices();
+    if (!hub_ || !hub_->run()) {
+        qCritical() << "[SimController]: Fatal error - RadioHub failed to "
+                       "start. Aborting.";
+        return;
+    }
+
+    setupConnections();
+
+    if (set_pack_.sim.is_monolithic) {
+        qInfo() << "[SimController]: Mode: MONOLITHIC. Let's deploy internal "
+                   "nodes: ues and gnbs";
+        setupGnbStations();
+        setupUeDevices();
+        return;
+    }
+
+    qInfo() << "[SimController]: Mode: DISTRIBUTED. Waiting for external "
+               "services to run.";
 }
 
 QList<std::shared_ptr<GnbLogic>> SimulationController::getGnbs() const
@@ -58,4 +74,26 @@ void SimulationController::setupUeDevices()
             ues_[ue->getId()] = ue;
         }
     }
+}
+
+void SimulationController::setupConnections()
+{
+    connect(hub_, &RadioHub::nodeRegistered, this,
+            &SimulationController::onNodeRegistered);
+}
+
+void SimulationController::onNodeRegistered(uint32_t id, EntityType type,
+                                            QPointF pos)
+{
+    if (type == EntityType::GNB) {
+        auto gnb = std::make_shared<GnbLogic>(id, set_pack_.gnb);
+        gnb->setPosition(pos);
+        gnbs_[id] = gnb;
+    } else {
+        auto ue = std::make_shared<UeLogic>(id, set_pack_.ue);
+        ue->setPosition(pos);
+        ues_[id] = ue;
+    }
+
+    emit dataUpdated();
 }
