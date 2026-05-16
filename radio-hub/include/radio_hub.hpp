@@ -34,10 +34,13 @@ class RadioHub : public QObject
 
 public:
     explicit RadioHub(const HubSettings set, QObject* parent = nullptr);
+    bool run();
 
 private slots:
     void onDataReceived(const QByteArray& data, const QHostAddress& sender_ip,
                         quint16 sender_port);
+signals:
+    void nodeRegistered(uint32_t id, EntityType type, QPointF position);
 
 private:
     void handleHubMessage(const SimProtocol::DecodedPacket& packet,
@@ -64,9 +67,11 @@ private:
     QMap<uint32_t, NodeInfo> gnbs_;
     QMap<uint32_t, NodeInfo> ues_;
 
+    uint16_t port_;
     const uint32_t hub_id_;
     const uint32_t broadcast_id_;
     const QPointF position_;
+    std::string address_;
 };
 
 #endif  // RADIOHUB_HPP

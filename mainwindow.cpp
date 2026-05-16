@@ -133,6 +133,15 @@ void MainWindow::updateDashboard()
     }
 }
 
+void MainWindow::setupControllerConnections()
+{
+    connect(sim_controller_.get(), &SimulationController::dataUpdated, this,
+            [this]() {
+                if (map_widget_) map_widget_->update();
+                this->updateDashboard();
+            });
+}
+
 void MainWindow::setCenteredItem(QTableWidget* table, int row, int col,
                                  const QString& text, QColor color)
 {

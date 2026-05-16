@@ -27,7 +27,7 @@ ue_settings:
       tx_power_db: 5.0
 
 simulation:
-  deploy_local_node: true
+  is_monolithic: false
   gnb_id_start: 1
   ue_id_start: 501
   gnb_count: 3

@@ -93,7 +93,7 @@ struct Positions {
 };
 
 struct SimulationSettings {
-    bool deploy_local_nodes = true;
+    bool is_monolithic = false;
 
     uint32_t gnb_count;
     uint32_t ue_count;

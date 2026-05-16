@@ -20,9 +20,17 @@ public:
     QList<std::shared_ptr<GnbLogic>> getGnbs() const;
     QList<std::shared_ptr<UeLogic>> getUes() const;
 
+signals:
+    void dataUpdated();
+
+private slots:
+    void onNodeRegistered(uint32_t id, EntityType type, QPointF pos);
+
 private:
     void setupGnbStations();
     void setupUeDevices();
+
+    void setupConnections();
 
     SettingsPack set_pack_;
 

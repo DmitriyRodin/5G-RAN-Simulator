@@ -108,7 +108,7 @@ SimulationSettings ConfigManager::parseSimulation(const YAML::Node& node)
     validateSection(node, "simulation");
     const auto sim_node = node["simulation"];
 
-    const bool deploy_local = getRequired<bool>(sim_node, "deploy_local_node");
+    const bool is_monolithic = getRequired<bool>(sim_node, "is_monolithic");
     const uint32_t gnb_count = getRequired<uint32_t>(sim_node, "gnb_count");
     const uint32_t ue_count = getRequired<uint32_t>(sim_node, "ue_count");
 
@@ -117,7 +117,7 @@ SimulationSettings ConfigManager::parseSimulation(const YAML::Node& node)
     const uint32_t ue_id_start = getRequired<uint32_t>(sim_node, "ue_id_start");
 
     qDebug() << "[ConfigManager]: Simulation settings parsed successfully";
-    return SimulationSettings{deploy_local, gnb_count, ue_count, gnb_id_start,
+    return SimulationSettings{is_monolithic, gnb_count, ue_count, gnb_id_start,
                               ue_id_start};
 }
 

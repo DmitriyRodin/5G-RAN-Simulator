@@ -27,12 +27,13 @@ public:
     ~MainWindow();
 
 private slots:
-
     void updateDashboard();
 
 private:
     void setupLayout();
     void setupTables();
+
+    void setupControllerConnections();
 
     static void setCenteredItem(QTableWidget* table, int row, int col,
                                 const QString& text, QColor color);
