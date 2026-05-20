@@ -92,8 +92,16 @@ struct Positions {
     std::unordered_map<uint32_t, Point2D> ues;
 };
 
+/**
+ * @brief Simulator deployment mode.
+ */
+enum class DeployMode : uint8_t {
+    Monolithic = 0,
+    Distributed = 1
+};
+
 struct SimulationSettings {
-    bool is_monolithic = false;
+    DeployMode deploy_mode = DeployMode::Distributed;
 
     uint32_t gnb_count;
     uint32_t ue_count;
@@ -118,6 +126,8 @@ struct SettingsPack {
 
     SettingsPack(HubSettings h, UeSettings u, GnbSettings g,
                  SimulationSettings s, Positions pos, Paths p);
+
+    DeployMode getMode() const;
 
     FlowLoggerSetupInfo getFlowLoggerInfo() const;
 

@@ -4,23 +4,10 @@
 #include <QMap>
 #include <QObject>
 
+#include "network_node.hpp"
 #include "settings.hpp"
 #include "sim_protocol.hpp"
 #include "udp_transport.hpp"
-
-struct GnbParameters {
-    double radius;
-};
-
-struct NodeInfo {
-    uint32_t id;
-    EntityType type;
-    QHostAddress address;
-    quint16 port;
-    QPointF position;
-
-    std::optional<GnbParameters> gnbData;
-};
 
 /**
  * @brief The RadioHub class acts as a central orchestrator
@@ -40,7 +27,7 @@ private slots:
     void onDataReceived(const QByteArray& data, const QHostAddress& sender_ip,
                         quint16 sender_port);
 signals:
-    void nodeRegistered(uint32_t id, EntityType type, QPointF position);
+    void nodeRegistered(NodeInfo node_info);
 
 private:
     void handleHubMessage(const SimProtocol::DecodedPacket& packet,
@@ -64,8 +51,8 @@ private:
                         const QPointF& position);
 
     UdpTransport* transport_ = nullptr;
-    QMap<uint32_t, NodeInfo> gnbs_;
-    QMap<uint32_t, NodeInfo> ues_;
+    QHash<uint32_t, NodeInfo> gnbs_;
+    QHash<uint32_t, NodeInfo> ues_;
 
     uint16_t port_;
     const uint32_t hub_id_;

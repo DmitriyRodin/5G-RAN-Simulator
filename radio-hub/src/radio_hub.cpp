@@ -74,27 +74,31 @@ void RadioHub::handleRegistration(const uint32_t node_id,
     } else {
         switch (type) {
             case EntityType::UE: {
-                ues_[node_id] = {node_id, EntityType::UE, sender_ip,
-                                 sender_port, position};
+                const NodeInfo ue_data{node_id,     EntityType::UE, sender_ip,
+                                       sender_port, position,       UeData{}};
+                ues_[node_id] = ue_data;
                 qDebug() << QString("[RadioHub] UE %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
-                emit nodeRegistered(node_id, EntityType::UE, position);
+
+                emit nodeRegistered(ue_data);
                 break;
             }
             case EntityType::GNB: {
-                gnbs_[node_id] = {
+                const NodeInfo gnb_data{
                     node_id,   EntityType::GNB,
                     sender_ip, sender_port,
-                    position,  std::make_optional<GnbParameters>({radius})};
+                    position,  GnbData{radius, GnbData::INITIAL_UE_COUNT}};
+                gnbs_[node_id] = gnb_data;
                 qDebug()
                     << QString("[RadioHub] GNB %1 registered").arg(node_id);
                 reg_status = HubResponse::REG_ACCEPTED;
-                emit nodeRegistered(node_id, EntityType::GNB, position);
+                emit nodeRegistered(gnb_data);
                 break;
             }
             case EntityType::RadioHub: {
                 qWarning() << QString(
-                    "[RadioHub] Registration Error: Oops. Some other RadioHub "
+                    "[RadioHub] Registration Error: Oops. Some other "
+                    "RadioHub "
                     "tries "
                     "to register, but we have only one RadioHub in our "
                     "architecture");
@@ -152,22 +156,41 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
 
 void RadioHub::broadcastFromGbn(const QByteArray& raw_data, uint32_t src_id)
 {
-    const NodeInfo* gnb = findNode(src_id);
-    if (!gnb || gnb->type != EntityType::GNB || !gnb->gnbData.has_value()) {
+    const NodeInfo* node = findNode(src_id);
+
+    if (!node) {
         return;
     }
 
-    const double radius = gnb->gnbData->radius;
-    QPointF gnbPos = gnb->position;
+    std::visit(
+        overloaded{[this, &raw_data, node](const GnbData& gnb) {
+                       double radius = gnb.radius;
+                       QPointF gnb_pos = node->position;
 
-    for (auto it = ues_.begin(); it != ues_.end(); ++it) {
-        const NodeInfo& ue = it.value();
-        const double distance = calculateDistance(gnbPos, ue.position);
+                       qDebug()
+                           << QString(
+                                  "[RadioHub] Processing broadcast from GNB %1 "
+                                  "with radius %2")
+                                  .arg(node->id)
+                                  .arg(radius);
 
-        if (distance <= radius) {
-            transport_->sendData(raw_data, ue.address, ue.port);
-        }
-    }
+                       for (auto it = ues_.begin(); it != ues_.end(); ++it) {
+                           const NodeInfo& ue_node = it.value();
+
+                           double distance =
+                               QLineF(gnb_pos, ue_node.position).length();
+
+                           if (distance <= radius) {
+                               transport_->sendData(raw_data, ue_node.address,
+                                                    ue_node.port);
+                           }
+                       }
+                   },
+                   [](const UeData&) {
+                       qWarning()
+                           << "[RadioHub] Broadcast error: Node is not a GNB!";
+                   }},
+        node->specific_data);
 }
 
 void RadioHub::forwardToNode(const QByteArray& raw_data, const uint32_t dst_id,
@@ -224,12 +247,12 @@ bool RadioHub::areWithinCoverageArea(const NodeInfo* source,
     const double distance =
         calculateDistance(source->position, target->position);
 
-    if (source->gnbData.has_value()) {
-        return distance <= source->gnbData->radius;
+    if (const auto* gnb = std::get_if<GnbData>(&source->specific_data)) {
+        return distance <= gnb->radius;
     }
 
-    if (target->gnbData.has_value()) {
-        return distance <= target->gnbData->radius;
+    if (const auto* gnb = std::get_if<GnbData>(&target->specific_data)) {
+        return distance <= gnb->radius;
     }
 
     return false;

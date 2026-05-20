@@ -24,14 +24,19 @@ void BaseEntity::stop()
 {
 }
 
-EntityType BaseEntity::getType()
+EntityType BaseEntity::getType() const
 {
     return type_;
 }
 
-quint16 BaseEntity::localPort() const
+quint16 BaseEntity::port() const
 {
     return transport_->localPort();
+}
+
+void BaseEntity::setPort(quint16 port)
+{
+    port_ = port;
 }
 
 bool BaseEntity::setupNetwork(quint16 port)
