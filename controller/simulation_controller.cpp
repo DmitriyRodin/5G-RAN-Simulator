@@ -3,6 +3,9 @@
 #include <QPoint>
 #include <QRandomGenerator>
 
+#include "gnb_logic.hpp"
+#include "ue_logic.hpp"
+
 SimulationController::SimulationController(SettingsPack pack, QObject* parent)
     : QObject(parent)
     , set_pack_(std::move(pack))
@@ -20,7 +23,7 @@ void SimulationController::startSimulation()
 
     setupConnections();
 
-    if (set_pack_.sim.is_monolithic) {
+    if (set_pack_.getMode() == DeployMode::Monolithic) {
         qInfo() << "[SimController]: Mode: MONOLITHIC. Let's deploy internal "
                    "nodes: ues and gnbs";
         setupGnbStations();
@@ -32,14 +35,16 @@ void SimulationController::startSimulation()
                "services to run.";
 }
 
-QList<std::shared_ptr<GnbLogic>> SimulationController::getGnbs() const
+const QHash<uint32_t, std::shared_ptr<INetworkNode>>&
+SimulationController::getGnbs() const
 {
-    return gnbs_.values();
+    return gnbs_;
 }
 
-QList<std::shared_ptr<UeLogic>> SimulationController::getUes() const
+const QHash<uint32_t, std::shared_ptr<INetworkNode>>&
+SimulationController::getUes() const
 {
-    return ues_.values();
+    return ues_;
 }
 
 void SimulationController::setupGnbStations()
@@ -82,18 +87,16 @@ void SimulationController::setupConnections()
             &SimulationController::onNodeRegistered);
 }
 
-void SimulationController::onNodeRegistered(uint32_t id, EntityType type,
-                                            QPointF pos)
+void SimulationController::onNodeRegistered(NodeInfo node_info)
 {
-    if (type == EntityType::GNB) {
-        auto gnb = std::make_shared<GnbLogic>(id, set_pack_.gnb);
-        gnb->setPosition(pos);
-        gnbs_[id] = gnb;
-    } else {
-        auto ue = std::make_shared<UeLogic>(id, set_pack_.ue);
-        ue->setPosition(pos);
-        ues_[id] = ue;
+    if (set_pack_.getMode() == DeployMode::Distributed) {
+        if (node_info.type == EntityType::GNB) {
+            auto gnb = std::make_shared<RemoteGnbProxy>(node_info);
+            gnbs_[node_info.id] = gnb;
+        } else {
+            auto ue = std::make_shared<RemoteUeProxy>(node_info);
+            ues_[node_info.id] = ue;
+        }
+        emit dataUpdated();
     }
-
-    emit dataUpdated();
 }

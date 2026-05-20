@@ -28,6 +28,7 @@ public:
     void run() override;
     uint32_t getConnectedUeCount() const;
     double getRadius() const;
+    EntityType getType() const override;
 
 protected slots:
     void onTick();

@@ -3,6 +3,8 @@
 #include <QHeaderView>
 
 #include "./ui_mainwindow.h"
+#include "gnb_logic.hpp"
+#include "ue_logic.hpp"
 
 MainWindow::MainWindow(std::shared_ptr<SimulationController> controller,
                        QWidget* parent)
@@ -79,57 +81,81 @@ MainWindow::MainWindow(std::shared_ptr<SimulationController> controller,
 void MainWindow::updateDashboard()
 {
     auto gnbs = sim_controller_->getGnbs();
-    auto ues = sim_controller_->getUes();
 
     gnb_table_->setRowCount(gnbs.size());
     gnb_table_->setColumnWidth(2, 100);
     int row = 0;
 
-    for (auto gnb : gnbs) {
+    auto fillGnbRow = [this](int table_row, uint32_t id, QPointF pos,
+                             double radius, uint32_t ue_count) {
+        setCenteredItem(gnb_table_, table_row, 0, QString::number(id),
+                        Qt::black);
+        setCenteredItem(gnb_table_, table_row, 1,
+                        QString("%1, %2").arg(pos.x()).arg(pos.y()), Qt::black);
+        setCenteredItem(gnb_table_, table_row, 2, QString::number(radius),
+                        Qt::black);
+        setCenteredItem(gnb_table_, table_row, 3, QString::number(ue_count),
+                        Qt::black);
+    };
+
+    for (const auto gnb : gnbs) {
         if (!gnb) {
             continue;
         }
 
-        setCenteredItem(gnb_table_, row, 0, QString::number(gnb->getId()),
-                        Qt::black);
-        setCenteredItem(
-            gnb_table_, row, 1,
-            QString("%1, %2").arg(gnb->position().x()).arg(gnb->position().y()),
-            Qt::black);
-        setCenteredItem(gnb_table_, row, 2, QString::number(gnb->getRadius()),
-                        Qt::black);
-        setCenteredItem(gnb_table_, row, 3,
-                        QString::number(gnb->getConnectedUeCount()), Qt::black);
-        ++row;
+        if (auto local = std::dynamic_pointer_cast<GnbLogic>(gnb)) {
+            fillGnbRow(row, local->getId(), local->position(),
+                       local->getRadius(), local->getConnectedUeCount());
+            ++row;
+        } else if (auto proxy =
+                       std::dynamic_pointer_cast<RemoteGnbProxy>(gnb)) {
+            fillGnbRow(row, proxy->getId(), proxy->position(),
+                       proxy->getRadius(), proxy->getConnectedUeCount());
+            ++row;
+        }
     }
 
-    ue_table_->setRowCount(ues.size());
-    row = 0;
+    auto fillUeRow = [this](int row, uint32_t id, QPointF pos,
+                            bool is_connected, QString state, double rssi,
+                            uint32_t target_gnb) {
+        setCenteredItem(ue_table_, row, 0, QString::number(id), Qt::black);
 
-    for (auto ue : ues) {
-        if (!ue) {
-            continue;
-        }
-
-        setCenteredItem(ue_table_, row, 0, QString::number(ue->getId()),
-                        Qt::black);
-
-        QString pos_str = QString("%1, %2")
-                              .arg(ue->position().x(), 0, 'f', 1)
-                              .arg(ue->position().y(), 0, 'f', 1);
+        QString pos_str =
+            QString("%1, %2").arg(pos.x(), 0, 'f', 1).arg(pos.y(), 0, 'f', 1);
         ue_table_->setItem(row, 1, new QTableWidgetItem(pos_str));
 
         auto* header_ue = ue_table_->horizontalHeader();
         header_ue->setSectionResizeMode(2, QHeaderView::Fixed);
 
-        QColor state_color = ue->isConnected() ? Qt::green : Qt::gray;
-        setCenteredItem(ue_table_, row, 2, ue->stateString(), state_color);
+        QColor state_color = is_connected ? Qt::green : Qt::gray;
+        setCenteredItem(ue_table_, row, 2, state, state_color);
 
-        QString rssi_str = QString::number(10.0, 'f', 1);
+        QString rssi_str = QString::number(rssi, 'f', 1);
         setCenteredItem(ue_table_, row, 3, rssi_str, Qt::black);
-        setCenteredItem(ue_table_, row, 4, QString::number(ue->getTargetGnb()),
+        setCenteredItem(ue_table_, row, 4, QString::number(target_gnb),
                         Qt::black);
-        ++row;
+    };
+
+    auto ues = sim_controller_->getUes();
+    ue_table_->setRowCount(ues.size());
+    row = 0;
+    const double RSSI = -70.0;
+
+    for (auto ue : ues) {
+        if (!ue) {
+            continue;
+        }
+        if (auto local = std::dynamic_pointer_cast<UeLogic>(ue)) {
+            fillUeRow(row, local->getId(), local->position(),
+                      local->isConnected(), local->stateString(), RSSI,
+                      local->getTargetGnb());
+            ++row;
+        } else if (auto proxy = std::dynamic_pointer_cast<RemoteUeProxy>(ue)) {
+            fillUeRow(row, proxy->getId(), proxy->position(),
+                      proxy->isConnected(), proxy->stateString(), RSSI,
+                      proxy->getTargetGnb());
+            ++row;
+        }
     }
 }
 

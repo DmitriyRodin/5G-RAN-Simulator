@@ -10,6 +10,7 @@ add_library(common_lib STATIC
     include/udp_transport.hpp
     include/flow_logger.hpp
     include/config_manager.hpp
+    include/network_node.hpp
     src/base_entity.cpp
     src/settings.cpp
     src/sim_protocol.cpp
