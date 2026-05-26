@@ -49,13 +49,27 @@ void MapWidget::paintEvent(QPaintEvent*)
 
     for (auto gnb : controller_->getGnbs()) {
         if (gnb) {
-            drawGnb(p, gnb->getId(), gnb->position(), gnb->getRadius());
+            if (auto local = std::dynamic_pointer_cast<GnbLogic>(gnb)) {
+                drawGnb(p, local->getId(), local->position(),
+                        local->getRadius());
+            } else if (auto proxy =
+                           std::dynamic_pointer_cast<RemoteGnbProxy>(gnb)) {
+                drawGnb(p, proxy->getId(), proxy->position(),
+                        proxy->getRadius());
+            }
         }
     }
 
     for (auto ue : controller_->getUes()) {
         if (ue) {
-            drawUe(p, ue->getId(), ue->position(), ue->isConnected());
+            if (auto local = std::dynamic_pointer_cast<UeLogic>(ue)) {
+                drawUe(p, local->getId(), local->position(),
+                       local->isConnected());
+            } else if (auto proxy =
+                           std::dynamic_pointer_cast<RemoteUeProxy>(ue)) {
+                drawUe(p, proxy->getId(), proxy->position(),
+                       proxy->isConnected());
+            }
         }
     }
 }

@@ -38,6 +38,11 @@ double GnbLogic::getRadius() const
     return radius_;
 }
 
+EntityType GnbLogic::getType() const
+{
+    return type_;
+}
+
 void GnbLogic::onTick()
 {
     auto now = std::chrono::steady_clock::now();

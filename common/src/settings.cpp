@@ -9,7 +9,14 @@ SettingsPack::SettingsPack(HubSettings h, UeSettings u, GnbSettings g,
     , gnb(std::move(g))
     , sim(std::move(s))
     , positions(std::move(pos))
-    , paths(std::move(p)){};
+    , paths(std::move(p))
+{
+}
+
+DeployMode SettingsPack::getMode() const
+{
+    return sim.deploy_mode;
+};
 
 FlowLoggerSetupInfo SettingsPack::getFlowLoggerInfo() const
 {
