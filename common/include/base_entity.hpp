@@ -8,11 +8,12 @@
 #include <QPoint>
 #include <QUdpSocket>
 
+#include "network_node.hpp"
 #include "settings.hpp"
 #include "types.hpp"
 #include "udp_transport.hpp"
 
-class BaseEntity : public QObject
+class BaseEntity : public QObject, public INetworkNode
 {
     Q_OBJECT
 public:
@@ -26,14 +27,15 @@ public:
     void registerAtHub();
     void handleRegistrationResponse(QDataStream& ds);
 
-    EntityType getType();
-    quint16 localPort() const;
+    uint32_t getId() const override;
+    EntityType getType() const override;
+    QPointF position() const override;
+    void setPosition(QPointF pos) override;
+    quint16 port() const override;
+    void setPort(quint16 port) override;
 
-    void setPosition(QPointF pos);
-    QPointF position() const;
     void setTxPower(double power);
     double txPower() const;
-    uint32_t getId() const;
 
 signals:
     void registrationAtRadioHubConfirmed();
@@ -45,10 +47,13 @@ protected:
 
     uint32_t id_;
     EntityType type_;
+    QPointF position_;
+    quint16 port_;
+
     UdpTransport* transport_ = nullptr;
     HubSettings hub_set_;
     bool is_registered_;
-    QPointF position_;
+
     double tx_power_dbm_;
 
     virtual void onProtocolMessageReceived(uint32_t source_id,
