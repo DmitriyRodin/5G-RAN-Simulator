@@ -17,7 +17,7 @@ struct NodePassport {
 
     NodePassport getNodePassport()
     {
-        return NodePassport{id, type, address, port, position};
+        return {id, type, address, port, position};
     }
 };
 
