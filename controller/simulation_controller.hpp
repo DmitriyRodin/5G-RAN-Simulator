@@ -15,8 +15,8 @@ public:
     explicit SimulationController(SettingsPack pack, QObject* parent = nullptr);
 
     void startSimulation();
-    const QHash<uint32_t, std::shared_ptr<INetworkNode>>& getGnbs() const;
-    const QHash<uint32_t, std::shared_ptr<INetworkNode>>& getUes() const;
+    QVector<GnbGuiSnapshot> getGnbSnapshots() const;
+    QVector<UeGuiSnapshot> getUeSnapshots() const;
 
 signals:
     void dataUpdated();

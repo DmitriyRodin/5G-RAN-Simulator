@@ -43,6 +43,11 @@ EntityType GnbLogic::getType() const
     return type_;
 }
 
+NodeInfo GnbLogic::getNodeInfo() const
+{
+    return {id_, type_, QHostAddress::LocalHost, port_, position_, getData()};
+}
+
 void GnbLogic::onTick()
 {
     auto now = std::chrono::steady_clock::now();
@@ -168,6 +173,11 @@ void GnbLogic::updateUeContext(uint32_t ueId, uint16_t crnti)
         ue_contexts_[ueId].crnti = crnti;
         ue_contexts_[ueId].last_activity = QDateTime::currentDateTime();
     }
+}
+
+GnbData GnbLogic::getData() const
+{
+    return {radius_, getConnectedUeCount()};
 }
 
 void GnbLogic::handleUeData(uint32_t sender_ue_id, const QByteArray& payload)

@@ -34,6 +34,18 @@ struct UeData {
     uint32_t target_gnb = INITIAL_TARGET_GNB;
 };
 
+struct GnbGuiSnapshot {
+    uint32_t id;
+    QPointF position;
+    GnbData data;
+};
+
+struct UeGuiSnapshot {
+    uint32_t id;
+    QPointF position;
+    UeData data;
+};
+
 template <class... Ts>
 struct overloaded : Ts... {
     using Ts::operator()...;
@@ -45,6 +57,34 @@ struct NodeInfo : NodePassport {
     std::variant<GnbData, UeData> specific_data;
 };
 
+namespace snapshots {
+
+inline UeGuiSnapshot getUeSnapshot(const NodeInfo& info)
+{
+    if (const auto* ue_data = std::get_if<UeData>(&info.specific_data)) {
+        return {info.id, info.position, *ue_data};
+    }
+    qWarning() << "[Snapshot] Core mismatch: NodeInfo type is UE, but variant "
+                  "holds invalid data for ID:"
+               << info.id << ".So let's return with default UeData";
+
+    return {info.id, info.position, UeData{}};
+}
+
+inline GnbGuiSnapshot getGnbSnapshot(const NodeInfo& info)
+{
+    if (const auto* gnb_data = std::get_if<GnbData>(&info.specific_data)) {
+        return {info.id, info.position, *gnb_data};
+    }
+    qWarning() << "[Snapshot] Core mismatch: NodeInfo type is GNB, but variant "
+                  "holds invalid data for ID:"
+               << info.id << ".So let's return with default GnbData";
+
+    return {info.id, info.position, GnbData{}};
+}
+
+}  // namespace snapshots
+
 class INetworkNode
 {
 public:
@@ -55,6 +95,7 @@ public:
     virtual void setPosition(QPointF pos) = 0;
     virtual quint16 port() const = 0;
     virtual void setPort(quint16 port) = 0;
+    virtual NodeInfo getNodeInfo() const = 0;
 };
 
 class RemoteNodeProxy : public INetworkNode
@@ -96,7 +137,7 @@ public:
         return node_pass_;
     }
 
-private:
+protected:
     NodePassport node_pass_;
 };
 
@@ -135,6 +176,11 @@ public:
         data_.target_gnb = gnb_id;
     }
 
+    NodeInfo getNodeInfo() const override
+    {
+        return {node_pass_, data_};
+    }
+
 private:
     UeData data_;
 };
@@ -161,9 +207,15 @@ public:
     {
         return data_.connected_ue_count;
     }
+
     double getRadius() const
     {
         return data_.radius;
+    }
+
+    NodeInfo getNodeInfo() const override
+    {
+        return {node_pass_, data_};
     }
 
 private:

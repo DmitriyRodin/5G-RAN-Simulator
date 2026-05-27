@@ -47,30 +47,12 @@ void MapWidget::paintEvent(QPaintEvent*)
 
     drawGrid(p);
 
-    for (auto gnb : controller_->getGnbs()) {
-        if (gnb) {
-            if (auto local = std::dynamic_pointer_cast<GnbLogic>(gnb)) {
-                drawGnb(p, local->getId(), local->position(),
-                        local->getRadius());
-            } else if (auto proxy =
-                           std::dynamic_pointer_cast<RemoteGnbProxy>(gnb)) {
-                drawGnb(p, proxy->getId(), proxy->position(),
-                        proxy->getRadius());
-            }
-        }
+    for (auto gnb_info : controller_->getGnbSnapshots()) {
+        drawGnb(p, gnb_info.id, gnb_info.position, gnb_info.data.radius);
     }
 
-    for (auto ue : controller_->getUes()) {
-        if (ue) {
-            if (auto local = std::dynamic_pointer_cast<UeLogic>(ue)) {
-                drawUe(p, local->getId(), local->position(),
-                       local->isConnected());
-            } else if (auto proxy =
-                           std::dynamic_pointer_cast<RemoteUeProxy>(ue)) {
-                drawUe(p, proxy->getId(), proxy->position(),
-                       proxy->isConnected());
-            }
-        }
+    for (auto ue_info : controller_->getUeSnapshots()) {
+        drawUe(p, ue_info.id, ue_info.position, ue_info.data.is_connected);
     }
 }
 

@@ -40,6 +40,7 @@ void UeLogic::run()
 
 void UeLogic::resetSessionContext()
 {
+    is_connected_ = false;
     target_gnb_id_ = 0;
     crnti_ = 0;
     last_rach_ra_rnti_ = 0;
@@ -253,6 +254,7 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
     }
 
     state_ = UeRrcState::RRC_CONNECTED;
+    is_connected_ = true;
 
     qDebug() << "[UE #" << id_ << "] Connected to gNB" << gnb_id
              << ". C-RNTI:" << crnti_;
@@ -444,4 +446,14 @@ void UeLogic::handleUserPlaneData(const QByteArray& payload)
                     .arg(id_)
                     .arg(ue_sender)
                     .arg(text);
+}
+
+UeData UeLogic::getData() const
+{
+    return UeData{is_connected_, toString(state_), target_gnb_id_};
+}
+
+NodeInfo UeLogic::getNodeInfo() const
+{
+    return {id_, type_, QHostAddress::LocalHost, port_, position_, getData()};
 }

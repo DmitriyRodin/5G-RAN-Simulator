@@ -24,6 +24,7 @@ public:
     bool isConnected() const;
     QString stateString() const;
     uint32_t getTargetGnb() const;
+    NodeInfo getNodeInfo() const override;
 
 protected:
     void onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,
@@ -53,8 +54,10 @@ private:
     void resetSessionContext();
 
     void handleUserPlaneData(const QByteArray& payload);
+    UeData getData() const;
 
 protected:
+    bool is_connected_ = false;
     UeRrcState state_;
     uint32_t target_gnb_id_;
     /* Cell Radio Network Temporary Identifier (C-RNTI).

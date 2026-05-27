@@ -33,6 +33,7 @@ public:
     void setPosition(QPointF pos) override;
     quint16 port() const override;
     void setPort(quint16 port) override;
+    NodeInfo getNodeInfo() const override;
 
     void setTxPower(double power);
     double txPower() const;

@@ -29,6 +29,7 @@ public:
     uint32_t getConnectedUeCount() const;
     double getRadius() const;
     EntityType getType() const override;
+    NodeInfo getNodeInfo() const override;
 
 protected slots:
     void onTick();
@@ -53,6 +54,7 @@ private:
     void sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause);
 
     void updateUeContext(uint32_t ueId, uint16_t crnti);
+    GnbData getData() const;
 
     QTimer* main_timer_ = nullptr;
     std::chrono::steady_clock::time_point last_broadcast_;
