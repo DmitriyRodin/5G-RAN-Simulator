@@ -39,6 +39,11 @@ void BaseEntity::setPort(quint16 port)
     port_ = port;
 }
 
+NodeInfo BaseEntity::getNodeInfo() const
+{
+    return {};
+}
+
 bool BaseEntity::setupNetwork(quint16 port)
 {
     if (!transport_) {

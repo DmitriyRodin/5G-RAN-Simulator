@@ -35,16 +35,28 @@ void SimulationController::startSimulation()
                "services to run.";
 }
 
-const QHash<uint32_t, std::shared_ptr<INetworkNode>>&
-SimulationController::getGnbs() const
+QVector<GnbGuiSnapshot> SimulationController::getGnbSnapshots() const
 {
-    return gnbs_;
+    QVector<GnbGuiSnapshot> result;
+    for (const auto& item : gnbs_) {
+        {
+            const auto node_info = item->getNodeInfo();
+            result.push_back(snapshots::getGnbSnapshot(node_info));
+        }
+    }
+    return result;
 }
 
-const QHash<uint32_t, std::shared_ptr<INetworkNode>>&
-SimulationController::getUes() const
+QVector<UeGuiSnapshot> SimulationController::getUeSnapshots() const
 {
-    return ues_;
+    QVector<UeGuiSnapshot> result;
+    for (const auto& item : ues_) {
+        {
+            const auto node_info = item->getNodeInfo();
+            result.push_back(snapshots::getUeSnapshot(node_info));
+        }
+    }
+    return result;
 }
 
 void SimulationController::setupGnbStations()

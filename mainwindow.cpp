@@ -3,8 +3,6 @@
 #include <QHeaderView>
 
 #include "./ui_mainwindow.h"
-#include "gnb_logic.hpp"
-#include "ue_logic.hpp"
 
 MainWindow::MainWindow(std::shared_ptr<SimulationController> controller,
                        QWidget* parent)
@@ -80,9 +78,9 @@ MainWindow::MainWindow(std::shared_ptr<SimulationController> controller,
 
 void MainWindow::updateDashboard()
 {
-    auto gnbs = sim_controller_->getGnbs();
+    auto gnbs_info = sim_controller_->getGnbSnapshots();
 
-    gnb_table_->setRowCount(gnbs.size());
+    gnb_table_->setRowCount(gnbs_info.size());
     gnb_table_->setColumnWidth(2, 100);
     int row = 0;
 
@@ -98,21 +96,10 @@ void MainWindow::updateDashboard()
                         Qt::black);
     };
 
-    for (const auto gnb : gnbs) {
-        if (!gnb) {
-            continue;
-        }
-
-        if (auto local = std::dynamic_pointer_cast<GnbLogic>(gnb)) {
-            fillGnbRow(row, local->getId(), local->position(),
-                       local->getRadius(), local->getConnectedUeCount());
-            ++row;
-        } else if (auto proxy =
-                       std::dynamic_pointer_cast<RemoteGnbProxy>(gnb)) {
-            fillGnbRow(row, proxy->getId(), proxy->position(),
-                       proxy->getRadius(), proxy->getConnectedUeCount());
-            ++row;
-        }
+    for (const auto info : gnbs_info) {
+        fillGnbRow(row, info.id, info.position, info.data.radius,
+                   info.data.connected_ue_count);
+        ++row;
     }
 
     auto fillUeRow = [this](int row, uint32_t id, QPointF pos,
@@ -136,26 +123,15 @@ void MainWindow::updateDashboard()
                         Qt::black);
     };
 
-    auto ues = sim_controller_->getUes();
-    ue_table_->setRowCount(ues.size());
+    auto ues_info = sim_controller_->getUeSnapshots();
+    ue_table_->setRowCount(ues_info.size());
     row = 0;
     const double RSSI = -70.0;
 
-    for (auto ue : ues) {
-        if (!ue) {
-            continue;
-        }
-        if (auto local = std::dynamic_pointer_cast<UeLogic>(ue)) {
-            fillUeRow(row, local->getId(), local->position(),
-                      local->isConnected(), local->stateString(), RSSI,
-                      local->getTargetGnb());
-            ++row;
-        } else if (auto proxy = std::dynamic_pointer_cast<RemoteUeProxy>(ue)) {
-            fillUeRow(row, proxy->getId(), proxy->position(),
-                      proxy->isConnected(), proxy->stateString(), RSSI,
-                      proxy->getTargetGnb());
-            ++row;
-        }
+    for (auto info : ues_info) {
+        fillUeRow(row, info.id, info.position, info.data.is_connected,
+                  info.data.state, RSSI, info.data.target_gnb);
+        ++row;
     }
 }
 
