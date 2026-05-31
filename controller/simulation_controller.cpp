@@ -66,7 +66,7 @@ void SimulationController::setupGnbStations()
         gnb->setPosition({pos.X, pos.Y});
         gnb->setTxPower(set_pack_.gnb.radio.tx_power_db);
 
-        GnbCellConfig config;
+        GnbCellConfig config({{255, 1}, {255, 2}}, 2);
         config.tac = set_pack_.gnb.cell.tracking_area_code;
         gnb->setCellConfig(config);
 

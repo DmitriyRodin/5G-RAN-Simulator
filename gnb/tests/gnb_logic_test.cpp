@@ -1,5 +1,7 @@
 #include "gnb_logic_test.hpp"
 
+#include "qdatastream_serializer.hpp"
+
 class GnbLogicTest : public Test
 {
 protected:
@@ -8,9 +10,13 @@ protected:
         gnb = new StrictMock<MockGnbLogic>(TestData::GNB_ID,
                                            TestData::GNB_SETTINGS);
 
+        serializer_ = std::make_unique<QDataStreamSerializer>();
         config.tac = 123;
-        config.mcc = 255;
-        config.mnc = 1;
+        config.minRxLevel = 1;
+        config.plmns_size = 1;
+        PlmnIdentity plmn{255, 1};
+        config.plmns.push_back(plmn);
+
         gnb->setCellConfig(config);
     }
 
@@ -21,13 +27,15 @@ protected:
 
     StrictMock<MockGnbLogic>* gnb;
     GnbCellConfig config;
+    std::unique_ptr<ISerializer> serializer_;
 };
 
 TEST_F(GnbLogicTest, SIB1_Broadcast_Validation)
 {
-    EXPECT_CALL(*gnb, sendSimData(ProtocolMsgType::Sib1,
-                                  HasSib1Data(TestData::GNB_ID, 123, 255, 1),
-                                  0xFFFFFFFF))
+    EXPECT_CALL(*gnb,
+                sendSimData(ProtocolMsgType::Sib1,
+                            HasSib1Data(TestData::GNB_ID, 123, 1, 1, 255, 1),
+                            0xFFFFFFFF))
         .Times(1);
 
     gnb->sendBroadcastInfo();
@@ -126,14 +134,22 @@ TEST_F(GnbLogicTest, Handle_Registration_Request_Success)
 {
     uint32_t ue_id = 999;
 
-    QByteArray emmpty_payload;
+    RegistrationRequestInfo req_info;
+    req_info.ue_id = ue_id;
+    req_info.ue_cap = "Model-X-MIMO4x4";
 
-    EXPECT_CALL(*gnb, sendSimData(ProtocolMsgType::RrcSetup,
-                                  HasRegistrationResponse(
-                                      RegistrationStatus::Accepted, 42),
-                                  ue_id))
+    QByteArray valid_request_payload =
+        serializer_->serializeRegistrationRequest(req_info);
+
+    RegistrationAnswerInfo response;
+    response.status = RegistrationStatus::Accepted;
+    const QByteArray response_data =
+        serializer_->serializeRegistrationAnswer(response);
+
+    EXPECT_CALL(*gnb,
+                sendSimData(ProtocolMsgType::RrcSetup, response_data, ue_id))
         .Times(1);
 
     gnb->onProtocolMessageReceived(ue_id, ProtocolMsgType::RegistrationRequest,
-                                   emmpty_payload);
+                                   valid_request_payload);
 }

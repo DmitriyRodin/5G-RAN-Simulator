@@ -48,6 +48,16 @@ void UeLogic::resetSessionContext()
     last_report_time_ = std::chrono::steady_clock::now();
 }
 
+bool UeLogic::checkPlmnValidity(const SIB1Info& sib1)
+{
+    for (const auto& plmn_identity : sib1.cell_config.plmns) {
+        if (plmn_identity == plmn_) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void UeLogic::onRegistrationConfirmed()
 {
     qInfo() << QString(
@@ -123,8 +133,26 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
+    const auto sib1_info = serializer_->deserializeSB1Info(payload);
+
     qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
     // Maybe: CHECK signal level (RSRP)
+    if (!checkPlmnValidity(sib1_info)) {
+        qDebug() << QString(
+                        "[UE %1] This GNB %2 doesn support our mobile operator")
+                        .arg(id_)
+                        .arg(gnb_id);
+        qDebug() << QString("[UE %1] PlmnIdentity: mmc: %2, mnc: %3")
+                        .arg(id_)
+                        .arg(plmn_.mcc)
+                        .arg(plmn_.mnc);
+        qDebug() << QString("[gNB %1] PlmnIdentity:").arg(gnb_id);
+        for (const auto& [mcc, mnc] : sib1_info.cell_config.plmns) {
+            qDebug() << QString("plms: mcc: %1, mnc^ %2").arg(mcc).arg(mnc);
+        }
+        return;
+    }
+
     target_gnb_id_ = gnb_id;
     state_ = UeRrcState::RRC_IDLE;
 
@@ -145,10 +173,7 @@ void UeLogic::sendRachPreamble()
 
     state_ = UeRrcState::RRC_CONNECTING;
 
-    QByteArray payload;
-    QDataStream ds(&payload, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-    ds << ra_rnti;
+    QByteArray payload = serializer_->serializeRachPreamble(last_rach_ra_rnti_);
 
     sendSimData(ProtocolMsgType::RachPreamble, payload, target_gnb_id_);
 }
@@ -161,26 +186,18 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
-
-    uint16_t rx_ra_rnti;
-    uint16_t temp_c_rnti;
-    uint16_t timing_advance;
-
-    in >> rx_ra_rnti >> temp_c_rnti >> timing_advance;
-
-    if (rx_ra_rnti != last_rach_ra_rnti_) {
+    auto rar_info = serializer_->deserializeRar(payload, last_rach_ra_rnti_);
+    if (!rar_info.has_value()) {
         qDebug() << QString(
                         "[UE %1] RAR ignored: RA-RNTI "
                         "mismatch (Got: %2, Expected: %3)")
                         .arg(id_)
-                        .arg(rx_ra_rnti)
+                        .arg(rar_info->ra_rnti)
                         .arg(last_rach_ra_rnti_);
         return;
     }
 
-    crnti_ = temp_c_rnti;
+    crnti_ = rar_info->temp_c_rnti;
 
     FlowLogger::log(type_, id_, gnb_id, ProtocolMsgType::Rar, true);
 
@@ -196,25 +213,21 @@ void UeLogic::sendRrcSetupRequest(uint32_t gnb_id)
 {
     state_ = UeRrcState::RRC_CONNECTING;
 
-    QByteArray requestData;
-    QDataStream ds(&requestData, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
     /* InitialUE-Identity ::= CHOICE {
      *     ng-5G-S-TMSI-Part1          BIT STRING (SIZE (39)),
      *     randomValue                 BIT STRING (SIZE (39))
      *}
      * 3GPP TS 38.331 - Radio Resource Control (RRC) protocol specification
      */
-    sent_msg3_identity_ = static_cast<uint64_t>(id_);
-    ds << static_cast<quint64>(sent_msg3_identity_);
-
-    ds << static_cast<uint8_t>(RrcEstablishmentCause::MO_SIGNALLING);
+    const QByteArray request_data =
+        serializer_->serializeRrcSetupRequest(RrcSetupRequest{
+            sent_msg3_identity_,
+            static_cast<uint8_t>(RrcEstablishmentCause::MO_SIGNALLING)});
 
     FlowLogger::log(type_, id_, gnb_id, ProtocolMsgType::RrcSetupRequest,
                     false);
 
-    sendSimData(ProtocolMsgType::RrcSetupRequest, requestData, gnb_id);
+    sendSimData(ProtocolMsgType::RrcSetupRequest, request_data, gnb_id);
 }
 
 void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
@@ -231,21 +244,16 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
+    const RrcSetupInfo rrc_setup_info =
+        serializer_->deserializeRrcSetup(payload);
 
-    quint64 received_identity;
-    uint8_t config_status;
-
-    ds >> received_identity;
-    ds >> config_status;
-
-    if (received_identity != static_cast<quint64>(sent_msg3_identity_)) {
+    if (rrc_setup_info.received_identity !=
+        static_cast<quint64>(sent_msg3_identity_)) {
         qWarning() << QString(
                           "[UE %1] Contention Resolution FAILED! Winner ID: "
                           "%2, My ID: %3")
                           .arg(id_)
-                          .arg(received_identity)
+                          .arg(rrc_setup_info.received_identity)
                           .arg(sent_msg3_identity_);
 
         state_ = UeRrcState::RRC_IDLE;
@@ -263,12 +271,8 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
 
 void UeLogic::sendRrcSetupComplete(uint32_t gnb_id)
 {
-    QByteArray payload;
-    QDataStream ds(&payload, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    uint32_t selected_plmn = 1;
-    ds << selected_plmn;
+    const QByteArray payload =
+        serializer_->serializeRrcSetupComplete(RrcSetupCompleteInfo{plmn_});
 
     FlowLogger::log(type_, id_, gnb_id, ProtocolMsgType::RrcSetupComplete,
                     false);
@@ -284,11 +288,7 @@ void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
-    uint8_t cause_raw;
-    ds >> cause_raw;
-    RrcReleaseCause cause = static_cast<RrcReleaseCause>(cause_raw);
+    const RrcReleaseCause cause = serializer_->deserializeRrcRelease(payload);
 
     qDebug() << QString("[UE %1] <--- RRC Release received. Cause: %2 (%3)")
                     .arg(id_)
@@ -314,29 +314,46 @@ void UeLogic::sendRegistrationRequest()
         return;
     }
 
-    QByteArray nasData;
-    QDataStream ds(&nasData, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    ds << QString("UE-Capabilities-Model-X") << static_cast<uint16_t>(id_);
+    const QByteArray payload = serializer_->serializeRegistrationRequest(
+        {id_, QString("UE-Capabilities-Model-X")});
 
     qDebug() << "[UE #" << id_ << "] Sending NAS Registration Request via gNB"
              << target_gnb_id_;
-    sendSimData(ProtocolMsgType::RegistrationRequest, nasData, target_gnb_id_);
+    sendSimData(ProtocolMsgType::RegistrationRequest, payload, target_gnb_id_);
 }
 
 void UeLogic::handleRegistrationAccept(const QByteArray& payload)
 {
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
+    const RegistrationAnswerInfo payload_info =
+        serializer_->deserializeRegistrationAnswer(payload);
 
-    QString message;
-    ds >> message;
+    if (payload_info.status == RegistrationStatus::Accepted) {
+        state_ = UeRrcState::RRC_CONNECTED;
+        is_connected_ = true;
 
-    is_registered_ = true;
+        sendRrcSetupComplete(target_gnb_id_);
 
-    qDebug() << "[UE #" << id_
-             << "] NAS Registration Accepted! Network says:" << message;
+    } else if (payload_info.status == RegistrationStatus::Rejected) {
+        qWarning() << QString(
+                          "[UE %1] NAS: Connection REJECTED by gNB #%2. "
+                          "Reason: \"%3\"")
+                          .arg(id_)
+                          .arg(target_gnb_id_)
+                          .arg(payload_info.reject_reason.value_or(
+                              "No reason given"));
+
+        is_connected_ = false;
+
+        searchingForCell();
+
+    } else {
+        qCritical() << QString(
+                           "[UE %1] L3: Critical error. Received unknown "
+                           "RegistrationStatus byte: %2")
+                           .arg(id_)
+                           .arg(static_cast<uint8_t>(payload_info.status));
+        searchingForCell();
+    }
 }
 
 void UeLogic::onTick()
@@ -357,12 +374,9 @@ void UeLogic::sendMeasurementReport()
         return;
     }
 
-    QByteArray report;
-    QDataStream ds(&report, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    double rsrp = -90.0 + QRandomGenerator::global()->bounded(10);
-    ds << target_gnb_id_ << rsrp;
+    const double rsrp = -90.0 + QRandomGenerator::global()->bounded(10);
+    const QByteArray report =
+        serializer_->serializeMeasurementReport(rsrp, target_gnb_id_);
 
     qDebug() << "[UE #" << id_ << "] Sending Measurement Report. RSRP:" << rsrp
              << "dBm";
@@ -371,16 +385,11 @@ void UeLogic::sendMeasurementReport()
 
 void UeLogic::handleRrcReconfiguration(const QByteArray& payload)
 {
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    uint32_t target_gnb_id;
-
-    if (ds.atEnd()) {
+    const auto info = serializer_->deserializeRrcReconfiguration(payload);
+    if (!info.has_value()) {
         return;
     }
-    ds >> target_gnb_id;
-
+    const auto target_gnb_id = info.value().gnb_id;
     qDebug() << QString(
                     "[UE %1] <--- RRC Reconfiguration received! Switching from "
                     "gNB %2 to gNB %3")
@@ -401,22 +410,28 @@ void UeLogic::handleRrcReconfiguration(const QByteArray& payload)
     sendRachPreamble();
 }
 
-void UeLogic::sendChatMessage(uint32_t target_ue_id, const QString& text)
+void UeLogic::sendChatMessage(const ChatMessageInfo& info)
 {
     if (state_ != UeRrcState::RRC_CONNECTED) {
         qWarning() << "[UE #" << id_ << "] Cannot send message: Not connected!";
         return;
     }
 
-    QByteArray data;
-    QDataStream ds(&data, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    ds << target_ue_id << text;
+    const QByteArray data = serializer_->serializeChatMessage(info);
     qDebug() << "[UE #" << id_ << "] Sending text message to UE #"
-             << target_ue_id << ":" << text;
+             << info.receiver_ue_id << ":" << info.text;
 
     sendSimData(ProtocolMsgType::UserPlaneData, data, target_gnb_id_);
+}
+
+void UeLogic::handleUserPlaneData(const QByteArray& payload)
+{
+    ChatMessageInfo info = serializer_->deserializeChatMessage(payload);
+
+    qDebug() << QString("[UE %1] [CHAT] From UE %2: %3")
+                    .arg(id_)
+                    .arg(info.sender_ue_id)
+                    .arg(info.text);
 }
 
 bool UeLogic::isConnected() const
@@ -432,20 +447,6 @@ QString UeLogic::stateString() const
 uint32_t UeLogic::getTargetGnb() const
 {
     return target_gnb_id_;
-}
-
-void UeLogic::handleUserPlaneData(const QByteArray& payload)
-{
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
-    uint32_t ue_sender;
-    QString text;
-    ds >> ue_sender >> text;
-
-    qDebug() << QString("[UE %1] [CHAT] From UE %2: %3")
-                    .arg(id_)
-                    .arg(ue_sender)
-                    .arg(text);
 }
 
 UeData UeLogic::getData() const

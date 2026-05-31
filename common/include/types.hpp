@@ -61,50 +61,6 @@ enum class UeRrcState : uint8_t {
 
 QString toString(UeRrcState ue_rrc_state);
 
-struct UeContext {
-    uint32_t id;
-    uint16_t crnti;
-    uint32_t selected_plmn;
-
-    UeRrcState state;
-    RrcEstablishmentCause establishmentCause;
-    bool is_attached;
-
-    QHostAddress ip_address;
-    quint16 port;
-
-    double last_rssi;
-    QDateTime last_activity;
-
-    UeContext(uint32_t ue_id, uint16_t new_crnti, const QHostAddress& addr,
-              quint16 ip_port)
-        : id(ue_id)
-        , crnti(new_crnti)
-        , selected_plmn(0)
-        , state(UeRrcState::RRC_IDLE)
-        , establishmentCause(RrcEstablishmentCause::MO_SIGNALLING)
-        , is_attached(false)
-        , ip_address(addr)
-        , port(ip_port)
-        , last_rssi(0.0)
-        , last_activity(QDateTime::currentDateTime())
-    {
-    }
-
-    UeContext()
-        : id(0)
-        , crnti(0)
-        , selected_plmn(0)
-        , state(UeRrcState::RRC_IDLE)
-        , establishmentCause(RrcEstablishmentCause::MO_SIGNALLING)
-        , is_attached(false)
-        , port(0)
-        , last_rssi(0.0)
-        , last_activity(QDateTime::currentDateTime())
-    {
-    }
-};
-
 // ProtocolMsgType from gNb to UE and from UE to gNB
 
 enum class ProtocolMsgType : uint8_t {
@@ -146,6 +102,133 @@ enum class RegistrationStatus : uint8_t {
 };
 
 QString toString(RegistrationStatus reg_status);
+
+using rnti_t = uint16_t;
+using ta_index_t = uint16_t;
+
+struct RarInfo {
+    rnti_t ra_rnti;
+    rnti_t temp_c_rnti;
+    ta_index_t timing_advance;
+};
+
+struct RrcSetupRequest {
+    uint64_t ue_identity;
+    uint8_t cause;
+};
+
+struct RrcSetupInfo {
+    quint64 received_identity;
+    uint8_t config_status;
+};
+
+struct PlmnIdentity {
+    uint32_t mcc = 255;  // Mobile Country Code
+    uint32_t mnc = 1;    // Mobile Network Code
+
+    bool operator==(const PlmnIdentity& other) const
+    {
+        return (mcc == other.mcc) && (mnc == other.mnc);
+    }
+};
+
+struct RrcSetupCompleteInfo {
+    PlmnIdentity plmn;
+};
+
+struct RegistrationRequestInfo {
+    uint32_t ue_id;
+    QString ue_cap;
+};
+
+struct RegistrationAnswerInfo {
+    RegistrationStatus status;
+    std::optional<QString> reject_reason = std::nullopt;
+};
+
+struct RrcReconfigurationInfo {
+    uint32_t gnb_id;
+};
+
+struct ChatMessageInfo {
+    uint32_t receiver_ue_id;
+    uint32_t sender_ue_id;
+    QString text;
+};
+
+struct GnbCellConfig {
+    uint16_t tac = 100;  // Tracking Area Code
+    std::vector<PlmnIdentity> plmns;
+    uint8_t plmns_size = 0;
+    int16_t minRxLevel = -115;
+    double txPowerDb = 43.0;
+    GnbCellConfig(std::vector<PlmnIdentity> plmns_ident, const uint8_t size)
+        : plmns(plmns_ident)
+        , plmns_size(size)
+    {
+        for (const auto& [mcc, mnc] : plmns) {
+            qDebug() << "mcc: " << mcc << ", mnc: " << mnc;
+        }
+    }
+    GnbCellConfig()
+    {
+    }
+};
+
+struct SIB1Info {
+    uint32_t gnb_id;
+    GnbCellConfig cell_config;
+};
+
+struct RachPreambleInfo {
+    rnti_t ra_rnti;
+};
+
+QDebug operator<<(QDebug stream, ChatMessageInfo chat_info);
+
+struct UeContext {
+    uint32_t id;
+    rnti_t crnti;
+    PlmnIdentity selected_plmn;
+
+    UeRrcState state;
+    RrcEstablishmentCause establishmentCause;
+    bool is_attached;
+
+    QHostAddress ip_address;
+    quint16 port;
+
+    double last_rssi;
+    QDateTime last_activity;
+
+    UeContext(uint32_t ue_id, rnti_t new_crnti, const QHostAddress& addr,
+              quint16 ip_port)
+        : id(ue_id)
+        , crnti(new_crnti)
+        , selected_plmn(PlmnIdentity{})
+        , state(UeRrcState::RRC_IDLE)
+        , establishmentCause(RrcEstablishmentCause::MO_SIGNALLING)
+        , is_attached(false)
+        , ip_address(addr)
+        , port(ip_port)
+        , last_rssi(0.0)
+        , last_activity(QDateTime::currentDateTime())
+    {
+    }
+
+    UeContext()
+        : id(0)
+        , crnti(0)
+        , selected_plmn(PlmnIdentity{})
+        , state(UeRrcState::RRC_IDLE)
+        , establishmentCause(RrcEstablishmentCause::MO_SIGNALLING)
+        , is_attached(false)
+        , port(0)
+        , last_rssi(0.0)
+        , last_activity(QDateTime::currentDateTime())
+    {
+    }
+};
 
 // header and message type from gNb and UE to RaioHub(UE and gNB connection
 // simulation)

@@ -8,6 +8,7 @@
 #include <QPoint>
 #include <QUdpSocket>
 
+#include "iserializer.hpp"
 #include "network_node.hpp"
 #include "settings.hpp"
 #include "types.hpp"
@@ -56,6 +57,7 @@ protected:
     bool is_registered_;
 
     double tx_power_dbm_;
+    std::unique_ptr<ISerializer> serializer_;
 
     virtual void onProtocolMessageReceived(uint32_t source_id,
                                            ProtocolMsgType type,

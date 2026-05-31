@@ -5,18 +5,11 @@
 
 #include "base_entity.hpp"
 #include "settings.hpp"
+#include "types.hpp"
 
 #ifdef UNIT_TESTS
 class GnbLogicTestWrapper;
 #endif
-
-struct GnbCellConfig {
-    uint16_t tac = 100;  // Tracking Area Code
-    uint16_t mcc = 255;  // Mobile Country Code
-    uint16_t mnc = 1;    // Mobile Network Code
-    int16_t minRxLevel = -115;
-    double txPowerDb = 43.0;
-};
 
 class GnbLogic : public BaseEntity
 {

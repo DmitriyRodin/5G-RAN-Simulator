@@ -63,6 +63,7 @@ public:
     using UeLogic::is_registered_;
     using UeLogic::last_rach_ra_rnti_;
     using UeLogic::sent_msg3_identity_;
+    using UeLogic::serializer_;
     using UeLogic::state_;
     using UeLogic::target_gnb_id_;
 
