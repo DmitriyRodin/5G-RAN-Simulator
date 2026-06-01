@@ -4,6 +4,7 @@
 #include <QNetworkDatagram>
 
 #include "base_entity.hpp"
+#include "qdatastream_serializer.hpp"
 #include "sim_protocol.hpp"
 
 BaseEntity::BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
@@ -13,6 +14,7 @@ BaseEntity::BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
     , type_(type)
     , hub_set_(hub_set)
     , is_registered_(false)
+    , serializer_(std::make_unique<QDataStreamSerializer>())
 {
 }
 

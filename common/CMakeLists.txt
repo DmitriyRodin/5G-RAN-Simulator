@@ -5,12 +5,14 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(common_lib STATIC
     include/base_entity.hpp
+    include/iserializer.hpp
     include/sim_protocol.hpp
     include/types.hpp
     include/udp_transport.hpp
     include/flow_logger.hpp
     include/config_manager.hpp
     include/network_node.hpp
+    include/qdatastream_serializer.hpp
     src/base_entity.cpp
     src/settings.cpp
     src/sim_protocol.cpp
@@ -18,6 +20,7 @@ add_library(common_lib STATIC
     src/udp_transport.cpp
     src/flow_logger.cpp
     src/config_manager.cpp
+    src/qdatastream_serializer.cpp
 )
 
 target_include_directories(common_lib PUBLIC

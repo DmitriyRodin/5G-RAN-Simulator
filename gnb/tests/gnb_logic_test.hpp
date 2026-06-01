@@ -29,17 +29,20 @@ const HubSettings HUB_SET{HUB_PORT, HUB_ID, BROADCAST_ID, VIRT_POS, ADDRESS};
 const GnbSettings GNB_SETTINGS(HUB_SET, RADIO, CELL, RADIUS);
 };  // namespace TestData
 
-MATCHER_P4(HasSib1Data, gnb_id, tac, mcc, mnc, "")
+MATCHER_P6(HasSib1Data, gnb_id, tac, rx_level, plmns_size, mcc, mnc, "")
 {
     QDataStream ds(arg);
     ds.setByteOrder(QDataStream::BigEndian);
     uint32_t r_id;
     uint16_t r_tac;
-    int16_t r_minRx, r_mcc, r_mnc;
+    int16_t r_minRx;
+    uint8_t r_size;
+    int32_t r_mcc, r_mnc;
 
-    ds >> r_id >> r_tac >> r_minRx >> r_mcc >> r_mnc;
+    ds >> r_id >> r_tac >> r_minRx >> r_size >> r_mcc >> r_mnc;
 
-    return r_id == gnb_id && r_tac == tac && r_mcc == mcc && r_mnc == mnc;
+    return r_id == gnb_id && r_tac == tac && r_mcc == mcc && r_mnc == mnc &&
+           r_size == plmns_size && rx_level == r_minRx;
 }
 
 MATCHER_P2(HasRarData, expected_ra_rnti, expected_t_crnti, "")
@@ -53,17 +56,20 @@ MATCHER_P2(HasRarData, expected_ra_rnti, expected_t_crnti, "")
     return r_ra_rnti == expected_ra_rnti && r_t_crnti == expected_t_crnti;
 }
 
-MATCHER_P2(HasRegistrationResponse, expected_status, expected_crnti, "")
+MATCHER_P2(HasRegistrationResponse, expected_status, expected_reasone, "")
 {
     QDataStream ds(arg);
     ds.setByteOrder(QDataStream::BigEndian);
     uint8_t r_status;
-    uint16_t r_crnti;
+    QString r_reasone;
 
-    ds >> r_status >> r_crnti;
+    if (!ds.atEnd()) {
+        ds >> r_reasone;
+        return r_status == static_cast<uint8_t>(expected_status) &&
+               r_reasone == expected_reasone;
+    }
 
-    return r_status == static_cast<uint8_t>(expected_status) &&
-           r_crnti == expected_crnti;
+    return r_status == static_cast<uint8_t>(expected_status);
 }
 
 class MockGnbLogic : public GnbLogic
@@ -79,6 +85,7 @@ public:
                  uint32_t receiver_id),
                 (override));
 
+    using BaseEntity::serializer_;
     using GnbLogic::cellConfig_;
     using GnbLogic::handleRegistrationRequest;
     using GnbLogic::onProtocolMessageReceived;

@@ -20,7 +20,7 @@ public:
     explicit UeLogic(const uint32_t id, const UeSettings set,
                      QObject* parent = nullptr);
     void run() override;
-    void sendChatMessage(uint32_t target_ue_id, const QString& text);
+    void sendChatMessage(const ChatMessageInfo& info);
     bool isConnected() const;
     QString stateString() const;
     uint32_t getTargetGnb() const;
@@ -52,18 +52,19 @@ private:
     void sendMeasurementReport();
 
     void resetSessionContext();
+    bool checkPlmnValidity(const SIB1Info& sib1);
 
     void handleUserPlaneData(const QByteArray& payload);
     UeData getData() const;
+    PlmnIdentity plmn_;
 
-protected:
     bool is_connected_ = false;
     UeRrcState state_;
     uint32_t target_gnb_id_;
     /* Cell Radio Network Temporary Identifier (C-RNTI).
      * 3GPP TS 38.321 — MAC protocol specification: page 146
      */
-    uint16_t crnti_;
+    rnti_t crnti_;
     uint16_t last_rach_ra_rnti_;
     uint64_t sent_msg3_identity_;
 

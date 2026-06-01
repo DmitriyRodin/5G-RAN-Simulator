@@ -104,15 +104,8 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
 
 void GnbLogic::sendBroadcastInfo()
 {
-    QByteArray broadcast_info;
-    QDataStream ds(&broadcast_info, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    ds << static_cast<uint32_t>(id_);
-    ds << static_cast<uint16_t>(cellConfig_.tac);
-    ds << static_cast<int16_t>(cellConfig_.minRxLevel);
-    ds << static_cast<int16_t>(cellConfig_.mcc);
-    ds << static_cast<int16_t>(cellConfig_.mnc);
+    const QByteArray broadcast_info =
+        serializer_->serializeSB1Info({id_, cellConfig_});
 
     sendSimData(ProtocolMsgType::Sib1, broadcast_info, hub_set_.broadcast_id);
     FlowLogger::log(type_, id_, hub_set_.broadcast_id, ProtocolMsgType::Sib1,
@@ -121,12 +114,9 @@ void GnbLogic::sendBroadcastInfo()
 
 void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)
 {
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
-    uint16_t ra_rnti;
-    in >> ra_rnti;
+    const RachPreambleInfo info = serializer_->deserializeRachPreamble(payload);
 
-    uint16_t tempCrnti =
+    uint16_t temp_c_rnti =
         static_cast<uint16_t>(next_crnti_counter_ + (ueId % 9000));
 
     qDebug() << QString(
@@ -134,30 +124,24 @@ void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)
                     "ra_rnti = %3. tempCrnti = %4")
                     .arg(id_)
                     .arg(ueId)
-                    .arg(ra_rnti)
-                    .arg(tempCrnti);
+                    .arg(info.ra_rnti)
+                    .arg(temp_c_rnti);
 
-    updateUeContext(ueId, tempCrnti);
+    updateUeContext(ueId, temp_c_rnti);
 
-    QByteArray rarPayload;
-    QDataStream out(&rarPayload, QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::BigEndian);
-
-    out << ra_rnti;
-    out << tempCrnti;
-
-    uint16_t timingAdvance = 0;
-    out << timingAdvance;
-
+    const ta_index_t AVERAGE_TIMING_ANVANCE = 10;
+    const RarInfo rar_info = {info.ra_rnti, temp_c_rnti,
+                              AVERAGE_TIMING_ANVANCE};
+    const QByteArray rar_payload = serializer_->serializeRar(rar_info);
     qDebug()
         << QString(
                "[gNB %1] ---> Msg2 (RAR) sent to UE %2. Assigned T-CRNTI: %3")
                .arg(id_)
                .arg(ueId)
-               .arg(tempCrnti);
+               .arg(temp_c_rnti);
 
     FlowLogger::log(type_, id_, ueId, ProtocolMsgType::Rar, false);
-    sendSimData(ProtocolMsgType::Rar, rarPayload, ueId);
+    sendSimData(ProtocolMsgType::Rar, rar_payload, ueId);
 }
 
 void GnbLogic::updateUeContext(uint32_t ueId, uint16_t crnti)
@@ -187,66 +171,81 @@ void GnbLogic::handleUeData(uint32_t sender_ue_id, const QByteArray& payload)
         return;
     }
 
-    QDataStream in_ds(payload);
-    in_ds.setByteOrder(QDataStream::BigEndian);
+    const ChatMessageInfo info = serializer_->deserializeChatMessage(payload);
 
-    uint32_t target_ue_id;
-    QString chat_text;
-    in_ds >> target_ue_id >> chat_text;
-
-    if (!ue_contexts_.contains(target_ue_id)) {
+    if (sender_ue_id != info.sender_ue_id) {
         qWarning() << QString(
-                          "[gNB] UE %1 tries to message offline/unknown UE %2")
+                          "[UE %1] UserPlane: SOURCE MISMATCH ERROR! "
+                          "Network Header Sender ID (%2) does not match "
+                          "Application Payload Sender ID (%3). "
+                          "Target Receiver ID: %4. Dropping packet.")
+                          .arg(id_)
                           .arg(sender_ue_id)
-                          .arg(target_ue_id);
+                          .arg(info.sender_ue_id)
+                          .arg(info.receiver_ue_id);
         return;
     }
 
-    if (ue_contexts_[target_ue_id].state != UeRrcState::RRC_CONNECTED) {
-        qWarning() << "[gNB] Target UE" << target_ue_id
+    if (!ue_contexts_.contains(info.receiver_ue_id)) {
+        qWarning() << QString(
+                          "[gNB] UE %1 tries to message offline/unknown UE %2")
+                          .arg(sender_ue_id)
+                          .arg(info.receiver_ue_id);
+        return;
+    }
+
+    if (ue_contexts_[info.receiver_ue_id].state != UeRrcState::RRC_CONNECTED) {
+        qWarning() << "[gNB] Target UE" << info.receiver_ue_id
                    << "is not in CONNECTED state";
         return;
     }
 
-    QByteArray outbound_data;
-    QDataStream out_ds(&outbound_data, QIODevice::WriteOnly);
-    out_ds.setByteOrder(QDataStream::BigEndian);
-
-    out_ds << sender_ue_id << chat_text;
-
     qDebug() << QString("[gNB] Relay Chat: UE %1 -> UE %2 | Text: %3")
                     .arg(sender_ue_id)
-                    .arg(target_ue_id)
-                    .arg(chat_text);
+                    .arg(info.receiver_ue_id)
+                    .arg(info.text);
 
-    sendSimData(ProtocolMsgType::UserPlaneData, outbound_data, target_ue_id);
+    sendSimData(ProtocolMsgType::UserPlaneData, payload, info.receiver_ue_id);
 }
 
 void GnbLogic::handleRegistrationRequest(uint32_t ue_id,
                                          const QByteArray& payload)
 {
-    QDataStream ds(payload);
-    ds.setByteOrder(QDataStream::BigEndian);
+    const RegistrationRequestInfo info =
+        serializer_->deserializeRegistrationRequest(payload);
 
-    qDebug() << QString("[gNB %1] Received RRC Connection Request from UE %2")
+    if (info.ue_id != ue_id) {
+        qWarning() << QString(
+                          "[gNb %1] Received RRC Connection Request from UE %2 "
+                          "with wrong ue_id %3 in packet. Ignore reqquest")
+                          .arg(id_)
+                          .arg(ue_id)
+                          .arg(info.ue_id);
+        return;
+    }
+
+    qDebug() << QString(
+                    "[gNB %1] Received RRC Connection Request from UE %2 and "
+                    "UE capabilieties %3")
                     .arg(id_)
-                    .arg(ue_id);
+                    .arg(ue_id)
+                    .arg(info.ue_cap);
 
     bool isAccepted = true;  // Assumption: gNB has enough resources
 
-    QByteArray response_data;
-    QDataStream out(&response_data, QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::BigEndian);
-
+    RegistrationAnswerInfo response;
+    RegistrationStatus status;
     if (isAccepted) {
-        out << static_cast<uint8_t>(RegistrationStatus::Accepted);
-        const uint16_t new_crnti = 42;
-        out << new_crnti;
+        status = RegistrationStatus::Accepted;
 
         qDebug() << "  -> Registration ACCEPTED. Assigned C-RNTI: 42";
     } else {
-        out << static_cast<uint8_t>(RegistrationStatus::Rejected);
+        status = RegistrationStatus::Rejected;
+        response.reject_reason = QString("hasn't enough resources");
     }
+    response.status = status;
+    const QByteArray response_data =
+        serializer_->serializeRegistrationAnswer(response);
 
     sendSimData(ProtocolMsgType::RrcSetup, response_data, ue_id);
 }
@@ -346,12 +345,7 @@ void GnbLogic::handleRrcSetupRequest(uint32_t ue_id, const QByteArray& payload)
 
     UeContext& ctx = ue_contexts_[ue_id];
 
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
-
-    quint64 received_identity = 0;
-    uint8_t establishmentCause;
-    in >> received_identity >> establishmentCause;
+    RrcSetupRequest info = serializer_->deserializeRrcSetupRequest(payload);
 
     uint16_t assigned_crnti = ctx.crnti;
 
@@ -361,20 +355,16 @@ void GnbLogic::handleRrcSetupRequest(uint32_t ue_id, const QByteArray& payload)
                     .arg(id_)
                     .arg(ue_id)
                     .arg(assigned_crnti)
-                    .arg(received_identity)
-                    .arg(establishmentCause);
-
-    QByteArray msg4Payload;
-    QDataStream out(&msg4Payload, QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::BigEndian);
-    out << received_identity;
+                    .arg(info.ue_identity)
+                    .arg(info.cause);
 
     // Assumption: gNB has enough resources
-    out << static_cast<uint8_t>(RrcConfig::Status::Success);
+    const QByteArray msg4_payload = serializer_->serializeRrcSetup(
+        {info.ue_identity, static_cast<uint8_t>(RrcConfig::Status::Success)});
 
     FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcSetup, false);
 
-    sendSimData(ProtocolMsgType::RrcSetup, msg4Payload, ue_id);
+    sendSimData(ProtocolMsgType::RrcSetup, msg4_payload, ue_id);
 }
 
 void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
@@ -384,38 +374,32 @@ void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
         return;
     }
 
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
-
-    uint32_t selected_plmn;
-    in >> selected_plmn;
+    RrcSetupCompleteInfo info =
+        serializer_->deserializeRrcSetupComplete(payload);
 
     UeContext& ctx = ue_contexts_[ue_id];
 
     ctx.state = UeRrcState::RRC_CONNECTED;
     ctx.is_attached = true;
-    ctx.selected_plmn = selected_plmn;
+    ctx.selected_plmn = info.plmn;
 
     FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcSetupComplete, true);
 
     qDebug() << QString(
                     "[gNB %1] <--- Msg5 Received. UE %2 is now FULLY "
-                    "CONNECTED (C-RNTI %3). PLMN: %4")
+                    "CONNECTED (C-RNTI %3). PLMN: mcc %4, mnc: %5")
                     .arg(id_)
                     .arg(ue_id)
                     .arg(ctx.crnti)
-                    .arg(selected_plmn);
+                    .arg(info.plmn.mcc)
+                    .arg(info.plmn.mnc);
 }
 
 void GnbLogic::sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause)
 {
     if (!ue_contexts_.contains(ue_id)) return;
 
-    QByteArray payload;
-    QDataStream ds(&payload, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    ds << static_cast<uint8_t>(cause);
+    const QByteArray payload = serializer_->serializeRrcRelease(cause);
 
     qDebug() << QString("[gNB %1] ---> RRC Release to UE %2. Cause: %3")
                     .arg(id_)
