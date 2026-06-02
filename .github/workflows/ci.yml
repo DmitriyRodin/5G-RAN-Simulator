@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -43,13 +46,19 @@ jobs:
           sudo make
           sudo make install
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: c-cpp
+          queries: security-and-quality
+
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 
       - name: Build Project
         run: cmake --build build --parallel $(nproc)
 
-      - name: Run UE Logic Tests
+      - name: Run All 5G-RAN-Simulator Tests
         run: |
-          cd build/ue/tests
-          ./ue_tests
+          cd build
+          ctest --output-on-failure
