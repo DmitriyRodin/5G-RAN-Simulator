@@ -186,18 +186,19 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    auto rar_info = serializer_->deserializeRar(payload, last_rach_ra_rnti_);
-    if (!rar_info.has_value()) {
+    const auto info = serializer_->deserializeRar(payload);
+
+    if (info.ra_rnti != last_rach_ra_rnti_) {
         qDebug() << QString(
                         "[UE %1] RAR ignored: RA-RNTI "
                         "mismatch (Got: %2, Expected: %3)")
                         .arg(id_)
-                        .arg(rar_info->ra_rnti)
+                        .arg(info.ra_rnti)
                         .arg(last_rach_ra_rnti_);
         return;
     }
 
-    crnti_ = rar_info->temp_c_rnti;
+    crnti_ = info.temp_c_rnti;
 
     FlowLogger::log(type_, id_, gnb_id, ProtocolMsgType::Rar, true);
 
@@ -375,8 +376,8 @@ void UeLogic::sendMeasurementReport()
     }
 
     const double rsrp = -90.0 + QRandomGenerator::global()->bounded(10);
-    const QByteArray report =
-        serializer_->serializeMeasurementReport(rsrp, target_gnb_id_);
+    const QByteArray report = serializer_->serializeMeasurementReport(
+        MeasurementReportInfo{target_gnb_id_, rsrp});
 
     qDebug() << "[UE #" << id_ << "] Sending Measurement Report. RSRP:" << rsrp
              << "dBm";

@@ -43,7 +43,7 @@ private:
     void handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload);
     void handleMeasurementReport(uint32_t ue_id, const QByteArray& payload);
 
-    void triggerHandover(uint32_t ue_id, uint32_t target_Gnb_id);
+    void triggerHandover(uint32_t ue_id, uint32_t target_gnb_id);
     void sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause);
 
     void updateUeContext(uint32_t ueId, uint16_t crnti);

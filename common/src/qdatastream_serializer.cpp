@@ -40,10 +40,10 @@ QByteArray QDataStreamSerializer::serializeRachPreamble(
 RachPreambleInfo QDataStreamSerializer::deserializeRachPreamble(
     const QByteArray& payload) const
 {
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
     uint16_t ra_rnti;
-    in >> ra_rnti;
+    ds >> ra_rnti;
     return RachPreambleInfo{ra_rnti};
 }
 
@@ -59,20 +59,15 @@ QByteArray QDataStreamSerializer::serializeRar(const RarInfo& info) const
     return payload;
 }
 
-std::optional<RarInfo> QDataStreamSerializer::deserializeRar(
-    const QByteArray& payload, const uint16_t& last_rach_ra_rnti) const
+RarInfo QDataStreamSerializer::deserializeRar(const QByteArray& payload) const
 {
-    QDataStream in(payload);
-    in.setByteOrder(QDataStream::BigEndian);
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
 
-    RarInfo rar_info;
+    RarInfo info;
+    ds >> info.ra_rnti >> info.temp_c_rnti >> info.timing_advance;
 
-    in >> rar_info.ra_rnti >> rar_info.temp_c_rnti >> rar_info.timing_advance;
-
-    if (rar_info.ra_rnti != last_rach_ra_rnti) {
-        return std::nullopt;
-    }
-    return rar_info;
+    return info;
 }
 
 QByteArray QDataStreamSerializer::serializeRrcSetup(
@@ -197,14 +192,27 @@ RegistrationAnswerInfo QDataStreamSerializer::deserializeRegistrationAnswer(
 }
 
 QByteArray QDataStreamSerializer::serializeMeasurementReport(
-    const double& rsrp, const uint32_t& gnb_id) const
+    const MeasurementReportInfo& info) const
 {
     QByteArray report;
     QDataStream ds(&report, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
-    ds << gnb_id << rsrp;
+    ds << info.reported_gnb_id << info.rsrp;
 
     return report;
+}
+
+MeasurementReportInfo QDataStreamSerializer::deserializeMeasurementReport(
+    const QByteArray& payload) const
+{
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    MeasurementReportInfo info;
+    ds >> info.reported_gnb_id;
+    ds >> info.rsrp;
+
+    return info;
 }
 
 std::optional<RrcReconfigurationInfo>
@@ -284,4 +292,38 @@ SIB1Info QDataStreamSerializer::deserializeSB1Info(
     }
 
     return sib1;
+}
+
+QByteArray QDataStreamSerializer::serializeRegistrationPayload(
+    double radius) const
+{
+    QByteArray payload;
+    QDataStream ds(&payload, QIODevice::WriteOnly);
+    ds.setByteOrder(QDataStream::BigEndian);
+    ds << radius;
+    return payload;
+}
+
+QByteArray QDataStreamSerializer::serializeTriggerHandover(
+    const HandoverInfo info) const
+{
+    QByteArray payload;
+    QDataStream ds(&payload, QIODevice::WriteOnly);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    ds << static_cast<uint32_t>(info.gnb_id);
+
+    return payload;
+}
+
+HandoverInfo QDataStreamSerializer::deserializeTriggerHandover(
+    const QByteArray& payload) const
+{
+    HandoverInfo info;
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    ChatMessageInfo message;
+    ds >> info.gnb_id;
+    return info;
 }

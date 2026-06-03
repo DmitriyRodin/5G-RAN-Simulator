@@ -24,8 +24,7 @@ public:
         const QByteArray& payload) const = 0;
 
     virtual QByteArray serializeRar(const RarInfo& info) const = 0;
-    virtual std::optional<RarInfo> deserializeRar(
-        const QByteArray& payload, const uint16_t& last_rach_ra_rnti) const = 0;
+    virtual RarInfo deserializeRar(const QByteArray& payload) const = 0;
 
     virtual QByteArray serializeRrcSetup(const RrcSetupInfo& info) const = 0;
     virtual RrcSetupInfo deserializeRrcSetup(
@@ -51,13 +50,24 @@ public:
     virtual RegistrationAnswerInfo deserializeRegistrationAnswer(
         const QByteArray& payload) const = 0;
 
-    virtual QByteArray serializeMeasurementReport(
-        const double& rsrp, const uint32_t& gnb_id) const = 0;
     virtual std::optional<RrcReconfigurationInfo> deserializeRrcReconfiguration(
         const QByteArray& payload) const = 0;
     virtual QByteArray serializeChatMessage(
         const ChatMessageInfo& info) const = 0;
     virtual ChatMessageInfo deserializeChatMessage(
+        const QByteArray& payload) const = 0;
+
+    virtual QByteArray serializeMeasurementReport(
+        const MeasurementReportInfo& info) const = 0;
+    virtual MeasurementReportInfo deserializeMeasurementReport(
+        const QByteArray& payload) const = 0;
+
+    virtual QByteArray serializeRegistrationPayload(
+        const double radius) const = 0;
+
+    virtual QByteArray serializeTriggerHandover(
+        const HandoverInfo info) const = 0;
+    virtual HandoverInfo deserializeTriggerHandover(
         const QByteArray& payload) const = 0;
 };
 
