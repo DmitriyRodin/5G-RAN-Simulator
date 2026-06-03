@@ -156,6 +156,15 @@ struct ChatMessageInfo {
     QString text;
 };
 
+struct MeasurementReportInfo {
+    uint32_t reported_gnb_id;
+    double rsrp;
+};
+
+struct HandoverInfo {
+    uint32_t gnb_id;
+};
+
 struct GnbCellConfig {
     uint16_t tac = 100;  // Tracking Area Code
     std::vector<PlmnIdentity> plmns;

@@ -19,9 +19,7 @@ public:
         const QByteArray& payload) const override;
 
     QByteArray serializeRar(const RarInfo& info) const override;
-    std::optional<RarInfo> deserializeRar(
-        const QByteArray& payload,
-        const uint16_t& last_rach_ra_rnti) const override;
+    RarInfo deserializeRar(const QByteArray& payload) const override;
 
     QByteArray serializeRrcSetup(const RrcSetupInfo& info) const override;
     RrcSetupInfo deserializeRrcSetup(const QByteArray& payload) const override;
@@ -45,8 +43,7 @@ public:
         const RegistrationAnswerInfo& info) const override;
     RegistrationAnswerInfo deserializeRegistrationAnswer(
         const QByteArray& payload) const override;
-    QByteArray serializeMeasurementReport(
-        const double& rsrp, const uint32_t& gnb_id) const override;
+
     std::optional<RrcReconfigurationInfo> deserializeRrcReconfiguration(
         const QByteArray& payload) const override;
     QByteArray serializeChatMessage(
@@ -56,6 +53,17 @@ public:
 
     QByteArray serializeSB1Info(const SIB1Info& sib1) const override;
     SIB1Info deserializeSB1Info(const QByteArray& payload) const override;
+
+    QByteArray serializeMeasurementReport(
+        const MeasurementReportInfo& info) const override;
+    MeasurementReportInfo deserializeMeasurementReport(
+        const QByteArray& payload) const override;
+
+    QByteArray serializeRegistrationPayload(const double radius) const override;
+
+    QByteArray serializeTriggerHandover(const HandoverInfo info) const override;
+    HandoverInfo deserializeTriggerHandover(
+        const QByteArray& payload) const override;
 };
 
 #endif  // QDATASTREAM_SERIALIZER_HPP
