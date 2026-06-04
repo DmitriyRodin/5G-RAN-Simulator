@@ -37,16 +37,16 @@ protected:
     QByteArray getRegistrationPayload() const override;
 
 private:
-    void handleRachPreamble(uint32_t ueId, const QByteArray& payload);
+    void handleRachPreamble(uint32_t ue_id, const QByteArray& payload);
     void handleUeData(uint32_t sender_ue_id, const QByteArray& payload);
-    void handleRrcSetupRequest(uint32_t ueId, const QByteArray& payload);
+    void handleRrcSetupRequest(uint32_t ue_id, const QByteArray& payload);
     void handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload);
     void handleMeasurementReport(uint32_t ue_id, const QByteArray& payload);
 
     void triggerHandover(uint32_t ue_id, uint32_t target_gnb_id);
     void sendRrcRelease(uint32_t ue_id, RrcReleaseCause cause);
 
-    void updateUeContext(uint32_t ueId, uint16_t crnti);
+    void updateUeContext(uint32_t ue_id, uint16_t crnti);
     GnbData getData() const;
 
     QTimer* main_timer_ = nullptr;

@@ -112,50 +112,58 @@ void GnbLogic::sendBroadcastInfo()
                     false);
 }
 
-void GnbLogic::handleRachPreamble(uint32_t ueId, const QByteArray& payload)
+void GnbLogic::handleRachPreamble(uint32_t ue_id, const QByteArray& payload)
 {
-    const RachPreambleInfo info = serializer_->deserializeRachPreamble(payload);
+    const auto rach_opt = serializer_->deserializeRachPreamble(payload);
+
+    if (!rach_opt.has_value()) {
+        qWarning()
+            << "[GNB #" << id_
+            << "] RACH_PREAMBLE parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+    const RachPreambleInfo rach = rach_opt.value();
 
     uint16_t temp_c_rnti =
-        static_cast<uint16_t>(next_crnti_counter_ + (ueId % 9000));
+        static_cast<uint16_t>(next_crnti_counter_ + (ue_id % 9000));
 
     qDebug() << QString(
                     "[gNB %1] <--- Msg1 (RACH Preamble) received from UE %2. "
                     "ra_rnti = %3. tempCrnti = %4")
                     .arg(id_)
-                    .arg(ueId)
-                    .arg(info.ra_rnti)
+                    .arg(ue_id)
+                    .arg(rach.ra_rnti)
                     .arg(temp_c_rnti);
 
-    updateUeContext(ueId, temp_c_rnti);
+    updateUeContext(ue_id, temp_c_rnti);
 
     const ta_index_t AVERAGE_TIMING_ANVANCE = 10;
-    const RarInfo rar_info = {info.ra_rnti, temp_c_rnti,
+    const RarInfo rar_info = {rach.ra_rnti, temp_c_rnti,
                               AVERAGE_TIMING_ANVANCE};
     const QByteArray rar_payload = serializer_->serializeRar(rar_info);
     qDebug()
         << QString(
                "[gNB %1] ---> Msg2 (RAR) sent to UE %2. Assigned T-CRNTI: %3")
                .arg(id_)
-               .arg(ueId)
+               .arg(ue_id)
                .arg(temp_c_rnti);
 
-    FlowLogger::log(type_, id_, ueId, ProtocolMsgType::Rar, false);
-    sendSimData(ProtocolMsgType::Rar, rar_payload, ueId);
+    FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::Rar, false);
+    sendSimData(ProtocolMsgType::Rar, rar_payload, ue_id);
 }
 
-void GnbLogic::updateUeContext(uint32_t ueId, uint16_t crnti)
+void GnbLogic::updateUeContext(uint32_t ue_id, uint16_t crnti)
 {
-    if (!ue_contexts_.contains(ueId)) {
+    if (!ue_contexts_.contains(ue_id)) {
         UeContext ctx;
-        ctx.id = ueId;
+        ctx.id = ue_id;
         ctx.crnti = crnti;
         ctx.last_activity = QDateTime::currentDateTime();
         ctx.is_attached = false;
-        ue_contexts_[ueId] = ctx;
+        ue_contexts_[ue_id] = ctx;
     } else {
-        ue_contexts_[ueId].crnti = crnti;
-        ue_contexts_[ueId].last_activity = QDateTime::currentDateTime();
+        ue_contexts_[ue_id].crnti = crnti;
+        ue_contexts_[ue_id].last_activity = QDateTime::currentDateTime();
     }
 }
 
@@ -171,11 +179,18 @@ void GnbLogic::handleUeData(uint32_t sender_ue_id, const QByteArray& payload)
         return;
     }
 
-    const ChatMessageInfo info = serializer_->deserializeChatMessage(payload);
+    const auto info_opt = serializer_->deserializeChatMessage(payload);
+
+    if (!info_opt.has_value()) {
+        qWarning() << "[GNB #" << id_
+                   << "] UE_DATA parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+    const ChatMessageInfo info = info_opt.value();
 
     if (sender_ue_id != info.sender_ue_id) {
         qWarning() << QString(
-                          "[UE %1] UserPlane: SOURCE MISMATCH ERROR! "
+                          "[GNB %1] UserPlane: SOURCE MISMATCH ERROR! "
                           "Network Header Sender ID (%2) does not match "
                           "Application Payload Sender ID (%3). "
                           "Target Receiver ID: %4. Dropping packet.")
@@ -211,8 +226,15 @@ void GnbLogic::handleUeData(uint32_t sender_ue_id, const QByteArray& payload)
 void GnbLogic::handleRegistrationRequest(uint32_t ue_id,
                                          const QByteArray& payload)
 {
-    const RegistrationRequestInfo info =
-        serializer_->deserializeRegistrationRequest(payload);
+    const auto info_opt = serializer_->deserializeRegistrationRequest(payload);
+    if (!info_opt.has_value()) {
+        qWarning() << "[GNB #" << id_
+                   << "] RegistrationRequest parsing failed (corrupted "
+                      "packet). Dropping.";
+        return;
+    }
+
+    const RegistrationRequestInfo info = info_opt.value();
 
     if (info.ue_id != ue_id) {
         qWarning() << QString(
@@ -268,8 +290,15 @@ void GnbLogic::handleMeasurementReport(uint32_t ue_id,
 
     UeContext& ctx = ue_contexts_[ue_id];
 
-    const MeasurementReportInfo info =
-        serializer_->deserializeMeasurementReport(payload);
+    const auto info_opt = serializer_->deserializeMeasurementReport(payload);
+    if (!info_opt.has_value()) {
+        qWarning() << "[GNB #" << id_
+                   << "] MEASUREMENT_REPORT parsing failed (corrupted packet). "
+                      "Dropping.";
+        return;
+    }
+
+    const MeasurementReportInfo info = info_opt.value();
 
     ctx.last_activity = QDateTime::currentDateTime();
 
@@ -337,7 +366,15 @@ void GnbLogic::handleRrcSetupRequest(uint32_t ue_id, const QByteArray& payload)
 
     UeContext& ctx = ue_contexts_[ue_id];
 
-    RrcSetupRequest info = serializer_->deserializeRrcSetupRequest(payload);
+    const auto info_opt = serializer_->deserializeRrcSetupRequest(payload);
+    if (!info_opt.has_value()) {
+        qWarning() << "[GNB #" << id_
+                   << "] RRC_SETUP_REQUEST parsing failed (corrupted packet). "
+                      "Dropping.";
+        return;
+    }
+
+    const RrcSetupRequest info = info_opt.value();
 
     uint16_t assigned_crnti = ctx.crnti;
 
@@ -366,8 +403,15 @@ void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
         return;
     }
 
-    RrcSetupCompleteInfo info =
-        serializer_->deserializeRrcSetupComplete(payload);
+    const auto info_opt = serializer_->deserializeRrcSetupComplete(payload);
+    if (!info_opt.has_value()) {
+        qWarning() << "[GNB #" << id_
+                   << "] RRC_SETIP_COMPLETE parsing failed (corrupted packet). "
+                      "Dropping.";
+        return;
+    }
+
+    const RrcSetupCompleteInfo info = info_opt.value();
 
     UeContext& ctx = ue_contexts_[ue_id];
 
