@@ -133,7 +133,15 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    const auto sib1_info = serializer_->deserializeSB1Info(payload);
+    const auto sib1_opt = serializer_->deserializeSB1Info(payload);
+
+    if (!sib1_opt.has_value()) {
+        qWarning() << "[UE #" << id_
+                   << "] SIB1 parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+
+    const auto& sib1_info = sib1_opt.value();
 
     qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
     // Maybe: CHECK signal level (RSRP)
@@ -186,7 +194,15 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    const auto info = serializer_->deserializeRar(payload);
+    const auto info_opt = serializer_->deserializeRar(payload);
+
+    if (!info_opt.has_value()) {
+        qWarning() << "[UE #" << id_
+                   << "] RAR parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+
+    const auto& info = info_opt.value();
 
     if (info.ra_rnti != last_rach_ra_rnti_) {
         qDebug() << QString(
@@ -245,8 +261,16 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    const RrcSetupInfo rrc_setup_info =
-        serializer_->deserializeRrcSetup(payload);
+    const auto info_opt = serializer_->deserializeRrcSetup(payload);
+
+    if (!info_opt.has_value()) {
+        qWarning()
+            << "[UE #" << id_
+            << "] RRC_SETUP parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+
+    const RrcSetupInfo rrc_setup_info = info_opt.value();
 
     if (rrc_setup_info.received_identity !=
         static_cast<quint64>(sent_msg3_identity_)) {
@@ -289,7 +313,15 @@ void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
         return;
     }
 
-    const RrcReleaseCause cause = serializer_->deserializeRrcRelease(payload);
+    const auto cause_opt = serializer_->deserializeRrcRelease(payload);
+    if (!cause_opt.has_value()) {
+        qWarning()
+            << "[UE #" << id_
+            << "] RRC_RELEASE parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+
+    const RrcReleaseCause cause = cause_opt.value();
 
     qDebug() << QString("[UE %1] <--- RRC Release received. Cause: %2 (%3)")
                     .arg(id_)
@@ -325,34 +357,39 @@ void UeLogic::sendRegistrationRequest()
 
 void UeLogic::handleRegistrationAccept(const QByteArray& payload)
 {
-    const RegistrationAnswerInfo payload_info =
-        serializer_->deserializeRegistrationAnswer(payload);
+    const auto info_opt = serializer_->deserializeRegistrationAnswer(payload);
 
-    if (payload_info.status == RegistrationStatus::Accepted) {
+    if (!info_opt.has_value()) {
+        qWarning() << "[UE #" << id_
+                   << "] RegistrationAccept parsing failed (corrupted packet). "
+                      "Dropping.";
+        return;
+    }
+
+    const RegistrationAnswerInfo info = info_opt.value();
+
+    if (info.status == RegistrationStatus::Accepted) {
         state_ = UeRrcState::RRC_CONNECTED;
         is_connected_ = true;
 
         sendRrcSetupComplete(target_gnb_id_);
-
-    } else if (payload_info.status == RegistrationStatus::Rejected) {
+    } else if (info.status == RegistrationStatus::Rejected) {
         qWarning() << QString(
                           "[UE %1] NAS: Connection REJECTED by gNB #%2. "
                           "Reason: \"%3\"")
                           .arg(id_)
                           .arg(target_gnb_id_)
-                          .arg(payload_info.reject_reason.value_or(
-                              "No reason given"));
+                          .arg(info.reject_reason.value_or("No reason given"));
 
         is_connected_ = false;
 
         searchingForCell();
-
     } else {
         qCritical() << QString(
                            "[UE %1] L3: Critical error. Received unknown "
                            "RegistrationStatus byte: %2")
                            .arg(id_)
-                           .arg(static_cast<uint8_t>(payload_info.status));
+                           .arg(static_cast<uint8_t>(info.status));
         searchingForCell();
     }
 }
@@ -388,6 +425,9 @@ void UeLogic::handleRrcReconfiguration(const QByteArray& payload)
 {
     const auto info = serializer_->deserializeRrcReconfiguration(payload);
     if (!info.has_value()) {
+        qWarning() << "[UE #" << id_
+                   << "] RrcReconfiguration parsing failed (corrupted packet). "
+                      "Dropping.";
         return;
     }
     const auto target_gnb_id = info.value().gnb_id;
@@ -427,7 +467,16 @@ void UeLogic::sendChatMessage(const ChatMessageInfo& info)
 
 void UeLogic::handleUserPlaneData(const QByteArray& payload)
 {
-    ChatMessageInfo info = serializer_->deserializeChatMessage(payload);
+    const auto info_opt = serializer_->deserializeChatMessage(payload);
+
+    if (!info_opt.has_value()) {
+        qWarning()
+            << "[UE #" << id_
+            << "] UserPlaneData parsing failed (corrupted packet). Dropping.";
+        return;
+    }
+
+    const ChatMessageInfo info = info_opt.value();
 
     qDebug() << QString("[UE %1] [CHAT] From UE %2: %3")
                     .arg(id_)

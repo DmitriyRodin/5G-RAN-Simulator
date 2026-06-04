@@ -14,7 +14,8 @@ QByteArray QDataStreamSerializer::serializeRrcSetupRequest(
     return data;
 }
 
-RrcSetupRequest QDataStreamSerializer::deserializeRrcSetupRequest(
+std::optional<RrcSetupRequest>
+QDataStreamSerializer::deserializeRrcSetupRequest(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -24,7 +25,10 @@ RrcSetupRequest QDataStreamSerializer::deserializeRrcSetupRequest(
     uint8_t cause;
     ds >> id >> cause;
 
-    return RrcSetupRequest{id, cause};
+    RrcSetupRequest info{id, cause};
+
+    return ds.status() == QDataStream::Ok ? std::optional<RrcSetupRequest>(info)
+                                          : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRachPreamble(
@@ -37,14 +41,18 @@ QByteArray QDataStreamSerializer::serializeRachPreamble(
     return payload;
 }
 
-RachPreambleInfo QDataStreamSerializer::deserializeRachPreamble(
+std::optional<RachPreambleInfo> QDataStreamSerializer::deserializeRachPreamble(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
     uint16_t ra_rnti;
     ds >> ra_rnti;
-    return RachPreambleInfo{ra_rnti};
+    RachPreambleInfo info{ra_rnti};
+
+    return ds.status() == QDataStream::Ok
+               ? std::optional<RachPreambleInfo>(info)
+               : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRar(const RarInfo& info) const
@@ -59,7 +67,8 @@ QByteArray QDataStreamSerializer::serializeRar(const RarInfo& info) const
     return payload;
 }
 
-RarInfo QDataStreamSerializer::deserializeRar(const QByteArray& payload) const
+std::optional<RarInfo> QDataStreamSerializer::deserializeRar(
+    const QByteArray& payload) const
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
@@ -67,7 +76,8 @@ RarInfo QDataStreamSerializer::deserializeRar(const QByteArray& payload) const
     RarInfo info;
     ds >> info.ra_rnti >> info.temp_c_rnti >> info.timing_advance;
 
-    return info;
+    return ds.status() == QDataStream::Ok ? std::optional<RarInfo>(info)
+                                          : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRrcSetup(
@@ -81,19 +91,17 @@ QByteArray QDataStreamSerializer::serializeRrcSetup(
     return payload;
 }
 
-RrcSetupInfo QDataStreamSerializer::deserializeRrcSetup(
+std::optional<RrcSetupInfo> QDataStreamSerializer::deserializeRrcSetup(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
 
-    quint64 received_identity;
-    uint8_t config_status;
+    RrcSetupInfo info;
+    ds >> info.received_identity >> info.config_status;
 
-    ds >> received_identity;
-    ds >> config_status;
-
-    return {received_identity, config_status};
+    return ds.status() == QDataStream::Ok ? std::optional<RrcSetupInfo>(info)
+                                          : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRrcSetupComplete(
@@ -107,7 +115,8 @@ QByteArray QDataStreamSerializer::serializeRrcSetupComplete(
     return payload;
 }
 
-RrcSetupCompleteInfo QDataStreamSerializer::deserializeRrcSetupComplete(
+std::optional<RrcSetupCompleteInfo>
+QDataStreamSerializer::deserializeRrcSetupComplete(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -128,15 +137,17 @@ QByteArray QDataStreamSerializer::serializeRrcRelease(
     return payload;
 }
 
-RrcReleaseCause QDataStreamSerializer::deserializeRrcRelease(
+std::optional<RrcReleaseCause> QDataStreamSerializer::deserializeRrcRelease(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
     uint8_t cause_raw;
     ds >> cause_raw;
-    RrcReleaseCause cause = static_cast<RrcReleaseCause>(cause_raw);
-    return cause;
+    RrcReleaseCause info = static_cast<RrcReleaseCause>(cause_raw);
+
+    return ds.status() == QDataStream::Ok ? std::optional<RrcReleaseCause>(info)
+                                          : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRegistrationRequest(
@@ -149,7 +160,8 @@ QByteArray QDataStreamSerializer::serializeRegistrationRequest(
     return nas_data;
 }
 
-RegistrationRequestInfo QDataStreamSerializer::deserializeRegistrationRequest(
+std::optional<RegistrationRequestInfo>
+QDataStreamSerializer::deserializeRegistrationRequest(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -157,7 +169,10 @@ RegistrationRequestInfo QDataStreamSerializer::deserializeRegistrationRequest(
     RegistrationRequestInfo info;
 
     ds >> info.ue_id >> info.ue_cap;
-    return info;
+
+    return ds.status() == QDataStream::Ok
+               ? std::optional<RegistrationRequestInfo>(info)
+               : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRegistrationAnswer(
@@ -173,22 +188,25 @@ QByteArray QDataStreamSerializer::serializeRegistrationAnswer(
     return payload;
 }
 
-RegistrationAnswerInfo QDataStreamSerializer::deserializeRegistrationAnswer(
+std::optional<RegistrationAnswerInfo>
+QDataStreamSerializer::deserializeRegistrationAnswer(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
-    RegistrationAnswerInfo result;
+    RegistrationAnswerInfo info;
     uint8_t raw_status;
     ds >> raw_status;
-    result.status = static_cast<RegistrationStatus>(raw_status);
+    info.status = static_cast<RegistrationStatus>(raw_status);
 
-    if (result.status != RegistrationStatus::Accepted) {
+    if (info.status != RegistrationStatus::Accepted) {
         QString message;
         ds >> message;
-        result.reject_reason = message;
+        info.reject_reason = message;
     }
-    return result;
+    return ds.status() == QDataStream::Ok
+               ? std::optional<RegistrationAnswerInfo>(info)
+               : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeMeasurementReport(
@@ -202,7 +220,8 @@ QByteArray QDataStreamSerializer::serializeMeasurementReport(
     return report;
 }
 
-MeasurementReportInfo QDataStreamSerializer::deserializeMeasurementReport(
+std::optional<MeasurementReportInfo>
+QDataStreamSerializer::deserializeMeasurementReport(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -212,7 +231,9 @@ MeasurementReportInfo QDataStreamSerializer::deserializeMeasurementReport(
     ds >> info.reported_gnb_id;
     ds >> info.rsrp;
 
-    return info;
+    return ds.status() == QDataStream::Ok
+               ? std::optional<MeasurementReportInfo>(info)
+               : std::nullopt;
 }
 
 std::optional<RrcReconfigurationInfo>
@@ -228,10 +249,13 @@ QDataStreamSerializer::deserializeRrcReconfiguration(
         return std::nullopt;
     }
     ds >> target_gnb_id;
-    return RrcReconfigurationInfo{target_gnb_id};
+    RrcReconfigurationInfo info{target_gnb_id};
+    return ds.status() == QDataStream::Ok
+               ? std::optional<RrcReconfigurationInfo>(info)
+               : std::nullopt;
 }
 
-ChatMessageInfo QDataStreamSerializer::deserializeChatMessage(
+std::optional<ChatMessageInfo> QDataStreamSerializer::deserializeChatMessage(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -239,7 +263,9 @@ ChatMessageInfo QDataStreamSerializer::deserializeChatMessage(
 
     ChatMessageInfo message;
     ds >> message.receiver_ue_id >> message.sender_ue_id >> message.text;
-    return message;
+    return ds.status() == QDataStream::Ok
+               ? std::optional<ChatMessageInfo>(message)
+               : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeChatMessage(
@@ -271,7 +297,7 @@ QByteArray QDataStreamSerializer::serializeSB1Info(const SIB1Info& sib1) const
     return payload;
 }
 
-SIB1Info QDataStreamSerializer::deserializeSB1Info(
+std::optional<SIB1Info> QDataStreamSerializer::deserializeSB1Info(
     const QByteArray& payload) const
 {
     QDataStream ds(payload);
@@ -291,7 +317,8 @@ SIB1Info QDataStreamSerializer::deserializeSB1Info(
         sib1.cell_config.plmns.push_back({mcc, mnc});
     }
 
-    return sib1;
+    return ds.status() == QDataStream::Ok ? std::optional<SIB1Info>(sib1)
+                                          : std::nullopt;
 }
 
 QByteArray QDataStreamSerializer::serializeRegistrationPayload(
@@ -316,7 +343,7 @@ QByteArray QDataStreamSerializer::serializeTriggerHandover(
     return payload;
 }
 
-HandoverInfo QDataStreamSerializer::deserializeTriggerHandover(
+std::optional<HandoverInfo> QDataStreamSerializer::deserializeTriggerHandover(
     const QByteArray& payload) const
 {
     HandoverInfo info;
@@ -325,5 +352,7 @@ HandoverInfo QDataStreamSerializer::deserializeTriggerHandover(
 
     ChatMessageInfo message;
     ds >> info.gnb_id;
-    return info;
+
+    return ds.status() == QDataStream::Ok ? std::optional<HandoverInfo>(info)
+                                          : std::nullopt;
 }
