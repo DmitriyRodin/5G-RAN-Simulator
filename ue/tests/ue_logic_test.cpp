@@ -25,7 +25,7 @@ TEST_F(UeLogicTest, InitialStateIsDetached)
     EXPECT_EQ(ue->getCurrentState(), UeRrcState::DETACHED);
 }
 
-TEST_F(UeLogicTest, DISABLED_HandleSib1Transition)
+TEST_F(UeLogicTest, HandleSib1Transition)
 {
     emit ue->registrationAtRadioHubConfirmed();
 
@@ -37,6 +37,7 @@ TEST_F(UeLogicTest, DISABLED_HandleSib1Transition)
     test_sib1.cell_config.minRxLevel = -120;
     PlmnIdentity plmn{255, 1};
     test_sib1.cell_config.plmns.push_back(plmn);
+    test_sib1.cell_config.plmns_size = 1;
 
     QByteArray sib1_payload = serializer_->serializeSB1Info(test_sib1);
 
@@ -155,7 +156,7 @@ TEST_F(UeLogicTest, HandleRrcSetupContentionFailure)
     EXPECT_EQ(ue->crnti_, 0);
 }
 
-TEST_F(UeLogicTest, DISABLED_SendRegistrationRequestPayload)
+TEST_F(UeLogicTest, SendRegistrationRequestPayload)
 {
     ue->state_ = UeRrcState::RRC_CONNECTED;
     ue->target_gnb_id_ = 50;
@@ -166,14 +167,16 @@ TEST_F(UeLogicTest, DISABLED_SendRegistrationRequestPayload)
     auto msg = ue->sent_messages.last();
     EXPECT_EQ(msg.type, ProtocolMsgType::RegistrationRequest);
 
-    QDataStream in(msg.payload);
-    in.setByteOrder(QDataStream::BigEndian);
-    QString model;
-    uint16_t id;
-    in >> model >> id;
+    auto info_opt = serializer_->deserializeRegistrationRequest(msg.payload);
 
-    EXPECT_STREQ(model.toStdString().c_str(), "UE-Capabilities-Model-X");
-    EXPECT_EQ(id, TestData::UE_ID);
+    if (info_opt.has_value()) {
+        qDebug() << "error data";
+    }
+
+    const auto info = info_opt.value();
+
+    EXPECT_STREQ(info.ue_cap.toStdString().c_str(), "UE-Capabilities-Model-X");
+    EXPECT_EQ(info.ue_id, TestData::UE_ID);
 }
 
 TEST_F(UeLogicTest, HandleRrcReleaseAndRestart)
@@ -216,22 +219,19 @@ TEST_F(UeLogicTest, HandleHandoverReconfiguration)
     EXPECT_EQ(ue->sent_messages.last().dest, TARGET_GNB);
 }
 
-TEST_F(UeLogicTest, DISABLED_HandleRegistrationAcceptSuccess)
+TEST_F(UeLogicTest, HandleRegistrationAcceptSuccess)
 {
     ue->state_ = UeRrcState::RRC_CONNECTED;
-    ue->is_registered_ = false;
+    ue->is_connected_ = false;
 
-    QByteArray payload;
-    QDataStream ds(&payload, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-
-    uint32_t expected_tmsi = 0xABCDE123;
-    ds << expected_tmsi;
+    const auto payload = serializer_->serializeRegistrationAnswer(
+        {RegistrationStatus::Accepted});
 
     ue->onProtocolMessageReceived(50, ProtocolMsgType::RegistrationAccept,
                                   payload);
 
-    EXPECT_TRUE(ue->is_registered_);
+    EXPECT_FALSE(ue->is_registered_);
+    EXPECT_TRUE(ue->is_connected_);
 
     qDebug() << "Registration Accept processed. UE is now registered.";
 }
