@@ -70,7 +70,7 @@ TEST_F(GnbLogicTest, RRC_Connection_Setup_Success)
     UeContext ctx;
     ctx.id = ue_id;
     ctx.crnti = crnti;
-    ctx.last_activity = QDateTime::currentDateTime();
+    ctx.last_activity = std::chrono::steady_clock::now();
     ctx.is_attached = false;
     ctx.state = UeRrcState::DETACHED;
 
@@ -96,7 +96,7 @@ TEST_F(GnbLogicTest, Handover_Trigger_On_MeasurementReport)
 
     UeContext ctx;
     ctx.id = ue_id;
-    ctx.last_activity = QDateTime::currentDateTime();
+    ctx.last_activity = std::chrono::steady_clock::now();
     ctx.is_attached = false;
     ctx.state = UeRrcState::DETACHED;
 
@@ -121,7 +121,8 @@ TEST_F(GnbLogicTest, Inactivity_Timeout_Release)
     UeContext ctx;
     ctx.id = ue_id;
     ctx.state = UeRrcState::RRC_CONNECTED;
-    ctx.last_activity = QDateTime::currentDateTime().addSecs(-40);
+    ctx.last_activity =
+        std::chrono::steady_clock::now() - std::chrono::seconds(40);
     gnb->ue_contexts_[ue_id] = ctx;
 
     EXPECT_CALL(*gnb, sendSimData(ProtocolMsgType::RrcRelease, _, ue_id))

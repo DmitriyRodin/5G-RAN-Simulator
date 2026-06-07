@@ -1,7 +1,8 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
-#include <QDateTime>
+#include <chrono>
+
 #include <QDebug>
 #include <QHostAddress>
 #include <QPoint>
@@ -208,7 +209,7 @@ struct UeContext {
     quint16 port;
 
     double last_rssi;
-    QDateTime last_activity;
+    std::chrono::steady_clock::time_point last_activity;
 
     UeContext(uint32_t ue_id, rnti_t new_crnti, const QHostAddress& addr,
               quint16 ip_port)
@@ -221,7 +222,7 @@ struct UeContext {
         , ip_address(addr)
         , port(ip_port)
         , last_rssi(0.0)
-        , last_activity(QDateTime::currentDateTime())
+        , last_activity(std::chrono::steady_clock::now())
     {
     }
 
@@ -234,7 +235,7 @@ struct UeContext {
         , is_attached(false)
         , port(0)
         , last_rssi(0.0)
-        , last_activity(QDateTime::currentDateTime())
+        , last_activity(std::chrono::steady_clock::now())
     {
     }
 };

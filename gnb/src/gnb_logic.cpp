@@ -57,14 +57,24 @@ void GnbLogic::onTick()
         last_broadcast_ = now;
     }
 
-    QDateTime currentTime = QDateTime::currentDateTime();
+    const std::chrono::seconds inactivity_timeout(30);
+
     QMutableMapIterator<uint32_t, UeContext> it(ue_contexts_);
     while (it.hasNext()) {
         it.next();
+        UeContext& ctx = it.value();
+
         if (it.value().state == UeRrcState::RRC_CONNECTED) {
-            if (it.value().last_activity.secsTo(currentTime) > 30) {
+            auto duration_idle =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    now - ctx.last_activity);
+
+            if (duration_idle > inactivity_timeout) {
                 qDebug() << "[gNB] Inactivity timeout for UE" << it.key();
                 sendRrcRelease(it.key(), RrcReleaseCause::UserInactivity);
+
+                ctx.state = UeRrcState::RRC_IDLE;
+                ctx.is_attached = false;
             }
         }
     }
@@ -73,7 +83,9 @@ void GnbLogic::onTick()
 void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
                                          const QByteArray& payload)
 {
-    // UPDATE UeContext data
+    if (ue_contexts_.contains(ue_id)) {
+        ue_contexts_[ue_id].last_activity = std::chrono::steady_clock::now();
+    }
 
     switch (type) {
         case ProtocolMsgType::RrcSetupRequest:
@@ -154,16 +166,17 @@ void GnbLogic::handleRachPreamble(uint32_t ue_id, const QByteArray& payload)
 
 void GnbLogic::updateUeContext(uint32_t ue_id, uint16_t crnti)
 {
+    auto now = std::chrono::steady_clock::now();
     if (!ue_contexts_.contains(ue_id)) {
         UeContext ctx;
         ctx.id = ue_id;
         ctx.crnti = crnti;
-        ctx.last_activity = QDateTime::currentDateTime();
+        ctx.last_activity = now;
         ctx.is_attached = false;
         ue_contexts_[ue_id] = ctx;
     } else {
         ue_contexts_[ue_id].crnti = crnti;
-        ue_contexts_[ue_id].last_activity = QDateTime::currentDateTime();
+        ue_contexts_[ue_id].last_activity = now;
     }
 }
 
@@ -300,7 +313,7 @@ void GnbLogic::handleMeasurementReport(uint32_t ue_id,
 
     const MeasurementReportInfo info = info_opt.value();
 
-    ctx.last_activity = QDateTime::currentDateTime();
+    ctx.last_activity = std::chrono::steady_clock::now();
 
     qDebug() << QString(
                     "[gNB %1] <--- Measurement Report from UE %2. Cell: %3, "
@@ -418,6 +431,7 @@ void GnbLogic::handleRrcSetupComplete(uint32_t ue_id, const QByteArray& payload)
     ctx.state = UeRrcState::RRC_CONNECTED;
     ctx.is_attached = true;
     ctx.selected_plmn = info.plmn;
+    ctx.last_activity = std::chrono::steady_clock::now();
 
     FlowLogger::log(type_, id_, ue_id, ProtocolMsgType::RrcSetupComplete, true);
 
