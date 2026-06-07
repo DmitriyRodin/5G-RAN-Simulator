@@ -289,6 +289,8 @@ void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
     state_ = UeRrcState::RRC_CONNECTED;
     is_connected_ = true;
 
+    last_report_time_ = std::chrono::steady_clock::now();
+
     qDebug() << "[UE #" << id_ << "] Connected to gNB" << gnb_id
              << ". C-RNTI:" << crnti_;
     sendRrcSetupComplete(target_gnb_id_);
@@ -334,9 +336,16 @@ void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
 
     FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcRelease,
                     true);
-
-    qDebug() << QString("[UE %1] Connection closed. Restarting lifecycle...")
-                    .arg(id_);
+    if (cause == RrcReleaseCause::UserInactivity) {
+        qDebug() << QString(
+                        "[UE %1] Connection was torn down due to INACTIVITY. "
+                        "Restarting cell scanning...")
+                        .arg(id_);
+    } else {
+        qDebug() << QString(
+                        "[UE %1] Connection closed. Restarting lifecycle...")
+                        .arg(id_);
+    }
 
     searchingForCell();
 }
