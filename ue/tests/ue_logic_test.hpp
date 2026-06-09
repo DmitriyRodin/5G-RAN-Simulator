@@ -54,9 +54,19 @@ public:
         return state_;
     }
 
+    CellSearchStatus getCellStatus()
+    {
+        return cell_status_;
+    }
+
     void setState(UeRrcState state)
     {
         state_ = state;
+    }
+
+    void setCellStatus(CellSearchStatus status)
+    {
+        cell_status_ = status;
     }
 
     using UeLogic::crnti_;

@@ -20,16 +20,17 @@ protected:
     std::unique_ptr<ISerializer> serializer_;
 };
 
-TEST_F(UeLogicTest, InitialStateIsDetached)
+TEST_F(UeLogicTest, InitialStateIsSynchronizing)
 {
-    EXPECT_EQ(ue->getCurrentState(), UeRrcState::DETACHED);
+    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_IDLE);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::SYNCHRONIZING);
 }
 
 TEST_F(UeLogicTest, HandleSib1Transition)
 {
     emit ue->registrationAtRadioHubConfirmed();
 
-    QTest::qWait(3100);
+    QTest::qWait(2100);
 
     SIB1Info test_sib1;
     test_sib1.gnb_id = 50;
@@ -43,7 +44,8 @@ TEST_F(UeLogicTest, HandleSib1Transition)
 
     ue->onProtocolMessageReceived(50, ProtocolMsgType::Sib1, sib1_payload);
 
-    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_CONNECTING);
+    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_IDLE);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::CAMPED);
 
     ASSERT_FALSE(ue->sent_messages.isEmpty());
     EXPECT_EQ(ue->sent_messages.last().type, ProtocolMsgType::RachPreamble);
@@ -53,26 +55,23 @@ TEST_F(UeLogicTest, SearchingForCellDelayVerification)
 {
     emit ue->registrationAtRadioHubConfirmed();
 
-    EXPECT_EQ(ue->getCurrentState(), UeRrcState::DETACHED);
-
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::SYNCHRONIZING);
     QTest::qWait(1500);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::SYNCHRONIZING);
 
-    EXPECT_EQ(ue->getCurrentState(), UeRrcState::DETACHED);
-    qDebug() << "Checked at 1500ms: State is still DETACHED. Good.";
-
-    QTest::qWait(800);
-
-    EXPECT_EQ(ue->getCurrentState(), UeRrcState::SEARCHING_FOR_CELL);
-    qDebug() << "Checked at 2300ms: State changed to SEARCHING_FOR_CELL.";
+    QTest::qWait(600);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::CELL_SELECTION);
+    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_IDLE);
 }
 
 TEST_F(UeLogicTest, HandleRarFailure)
 {
-    ue->setState(UeRrcState::DETACHED);
+    ue->setCellStatus(CellSearchStatus::CAMPED);
+    ue->setState(UeRrcState::RRC_CONNECTED);
 
     QByteArray rar_payload;
     ue->onProtocolMessageReceived(50, ProtocolMsgType::Rar, rar_payload);
-    EXPECT_NE(UeRrcState::RRC_CONNECTING, ue->getCurrentState());
+    EXPECT_NE(UeRrcState::RRC_IDLE, ue->getCurrentState());
 }
 
 TEST_F(UeLogicTest, HandleRarSuccess)
@@ -86,7 +85,8 @@ TEST_F(UeLogicTest, HandleRarSuccess)
     ds << ra_rnti << t_crnti << (uint16_t)0;
     ue->last_rach_ra_rnti_ = 101;
 
-    ue->setState(UeRrcState::RRC_CONNECTING);
+    ue->setState(UeRrcState::RRC_IDLE);
+    ue->setCellStatus(CellSearchStatus::CAMPED);
     ue->onProtocolMessageReceived(50, ProtocolMsgType::Rar, rar_payload);
 
     ASSERT_FALSE(ue->sent_messages.isEmpty());
@@ -119,7 +119,7 @@ TEST_F(UeLogicTest, MeasurementReportTimer)
 
 TEST_F(UeLogicTest, HandleRrcSetupSuccess)
 {
-    ue->state_ = UeRrcState::RRC_CONNECTING;
+    ue->setState(UeRrcState::RRC_IDLE);
     ue->target_gnb_id_ = 50;
     ue->sent_msg3_identity_ = 101;
 
@@ -138,7 +138,7 @@ TEST_F(UeLogicTest, HandleRrcSetupSuccess)
 
 TEST_F(UeLogicTest, HandleRrcSetupContentionFailure)
 {
-    ue->state_ = UeRrcState::RRC_CONNECTING;
+    ue->state_ = UeRrcState::RRC_IDLE;
     ue->target_gnb_id_ = 50;
     ue->sent_msg3_identity_ = 101;
 
@@ -190,10 +190,10 @@ TEST_F(UeLogicTest, HandleRrcReleaseAndRestart)
 
     ue->onProtocolMessageReceived(50, ProtocolMsgType::RrcRelease, payload);
 
-    EXPECT_EQ(ue->state_, UeRrcState::DETACHED);
+    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_IDLE);
     EXPECT_EQ(ue->target_gnb_id_, 0);
     QTest::qWait(2500);
-    EXPECT_EQ(ue->state_, UeRrcState::SEARCHING_FOR_CELL);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::CELL_SELECTION);
 }
 
 TEST_F(UeLogicTest, HandleHandoverReconfiguration)
@@ -212,7 +212,8 @@ TEST_F(UeLogicTest, HandleHandoverReconfiguration)
                                   ProtocolMsgType::RrcReconfiguration, payload);
 
     EXPECT_EQ(ue->target_gnb_id_, TARGET_GNB);
-    EXPECT_EQ(ue->state_, UeRrcState::RRC_CONNECTING);
+    EXPECT_EQ(ue->getCurrentState(), UeRrcState::RRC_IDLE);
+    EXPECT_EQ(ue->getCellStatus(), CellSearchStatus::CELL_SELECTION);
 
     ASSERT_FALSE(ue->sent_messages.isEmpty());
     EXPECT_EQ(ue->sent_messages.last().type, ProtocolMsgType::RachPreamble);

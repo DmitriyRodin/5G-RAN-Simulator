@@ -48,19 +48,38 @@ inline QString toString(RrcEstablishmentCause cause)
     }
 }
 
+// 5G states (3GPP TS 38.331)
 enum class UeRrcState : uint8_t {
-    // Simulation:
-    DETACHED = 0,
-    SEARCHING_FOR_CELL = 1,
+    RRC_IDLE,
+    RRC_CONNECTED,
+    RRC_INACTIVE
+};
 
-    // 5G states (3GPP TS 38.331)
-    RRC_IDLE = 2,
-    RRC_CONNECTING = 3,
-    RRC_CONNECTED = 4,
-    RRC_INACTIVE = 5
+// 3GPP TS 38.304
+enum class CellSearchStatus {
+    /**
+     * @value SYNCHRONIZING
+     * @brief Hardware initialization and frequency sweeping. RF receiver is
+     * unlocked, and the UE is completely blind to incoming radio frames (e.g.,
+     * SIB1).
+     */
+    SYNCHRONIZING,
+    /**
+     * @value CELL_SELECTION
+     * @brief RF hardware is locked to the channel. The receiver is active and
+     * actively decoding MIB/SIB1 broadcast bursts.
+     */
+    CELL_SELECTION,
+    /**
+     * @value CAMPED
+     * @brief Successful cell attachment. The UE has selected a valid cell and
+     * is monitoring paging.
+     */
+    CAMPED
 };
 
 QString toString(UeRrcState ue_rrc_state);
+QString toString(CellSearchStatus cell_status);
 
 // ProtocolMsgType from gNb to UE and from UE to gNB
 

@@ -44,26 +44,32 @@ QString toString(RegistrationStatus reg_status)
         case RegistrationStatus::Pending:
             return "RegistrationStatus::Pending";
         default:
-            return "Unkonwn RegistrationStatus";
+            return "RegistrationStatus: Unkonwn";
     }
 }
 
 QString toString(UeRrcState ue_rrc_state)
 {
     switch (ue_rrc_state) {
-        case UeRrcState::DETACHED:
-            return "DETACHED";
-        case UeRrcState::SEARCHING_FOR_CELL:
-            return "SEARCHING_CELL";
         case UeRrcState::RRC_IDLE:
             return "RRC_IDLE";
-        case UeRrcState::RRC_CONNECTING:
-            return "RRC_CONNECTING";
         case UeRrcState::RRC_CONNECTED:
             return "RRC_CONNECTED";
         case UeRrcState::RRC_INACTIVE:
             return "RRC_INACTIVE";
         default:
-            return "unknown";
+            return "UeRrcState: Unknown";
+    }
+}
+
+QString toString(CellSearchStatus cell_status)
+{
+    switch (cell_status) {
+        case CellSearchStatus::CELL_SELECTION:
+            return "CELL_SELECTION";
+        case CellSearchStatus::CAMPED:
+            return "CAMPED";
+        default:
+            return "CellSearchStatus: unknown";
     }
 }
