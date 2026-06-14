@@ -72,7 +72,7 @@ TEST_F(GnbLogicTest, RRC_Connection_Setup_Success)
     ctx.crnti = crnti;
     ctx.last_activity = std::chrono::steady_clock::now();
     ctx.is_attached = false;
-    ctx.state = UeRrcState::DETACHED;
+    ctx.state = UeRrcState::RRC_IDLE;
 
     gnb->ue_contexts_[ue_id] = ctx;
 
@@ -98,7 +98,7 @@ TEST_F(GnbLogicTest, Handover_Trigger_On_MeasurementReport)
     ctx.id = ue_id;
     ctx.last_activity = std::chrono::steady_clock::now();
     ctx.is_attached = false;
-    ctx.state = UeRrcState::DETACHED;
+    ctx.state = UeRrcState::RRC_IDLE;
 
     gnb->ue_contexts_[ue_id] = ctx;
     gnb->ue_contexts_[ue_id].last_rssi = -90.0;

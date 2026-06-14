@@ -11,7 +11,9 @@
 
 UeLogic::UeLogic(const uint32_t id, const UeSettings set, QObject* parent)
     : BaseEntity(id, EntityType::UE, set.hub, parent)
-    , state_(UeRrcState::DETACHED)
+    , state_(UeRrcState::RRC_IDLE)
+    , cell_status_(CellSearchStatus::SYNCHRONIZING)
+    , is_rf_receiver_locked_(false)
     , target_gnb_id_(0)
     , crnti_(0)
     , last_rach_ra_rnti_(0)
@@ -70,7 +72,7 @@ void UeLogic::onRegistrationConfirmed()
 void UeLogic::searchingForCell()
 {
     resetSessionContext();
-    state_ = UeRrcState::DETACHED;
+    cell_status_ = CellSearchStatus::SYNCHRONIZING;
 
     const int scan_delay = 2000;
 
@@ -81,8 +83,16 @@ void UeLogic::searchingForCell()
                     .arg(scan_delay);
 
     QTimer::singleShot(scan_delay, this, [this]() {
-        state_ = UeRrcState::SEARCHING_FOR_CELL;
-        qDebug() << QString("[UE %1] Receiver active. Listening for SIB1...")
+        if (cell_status_ != CellSearchStatus::SYNCHRONIZING) {
+            return;
+        }
+
+        cell_status_ = CellSearchStatus::CELL_SELECTION;
+        is_rf_receiver_locked_ = true;
+
+        qDebug() << QString(
+                        "[UE %1] L1: Hardware synchronized successfully! RF "
+                        "Receiver LOCKED. Ready to parse SIB1.")
                         .arg(id_);
     });
 }
@@ -129,10 +139,14 @@ void UeLogic::onProtocolMessageReceived(uint32_t gnb_id, ProtocolMsgType type,
 
 void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
 {
-    if (state_ != UeRrcState::SEARCHING_FOR_CELL) {
+    if (cell_status_ != CellSearchStatus::SYNCHRONIZING &&
+        !is_rf_receiver_locked_) {
         return;
     }
 
+    if (cell_status_ != CellSearchStatus::CELL_SELECTION) {
+        return;
+    }
     const auto sib1_opt = serializer_->deserializeSB1Info(payload);
 
     if (!sib1_opt.has_value()) {
@@ -162,6 +176,8 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
     }
 
     target_gnb_id_ = gnb_id;
+
+    cell_status_ = CellSearchStatus::CAMPED;
     state_ = UeRrcState::RRC_IDLE;
 
     qDebug() << QString("[UE %1] Camped on Cell #%2. State: RRC_IDLE")
@@ -179,8 +195,6 @@ void UeLogic::sendRachPreamble()
     uint16_t ra_rnti = static_cast<uint16_t>(id_ % 65535);
     last_rach_ra_rnti_ = ra_rnti;
 
-    state_ = UeRrcState::RRC_CONNECTING;
-
     QByteArray payload = serializer_->serializeRachPreamble(last_rach_ra_rnti_);
 
     sendSimData(ProtocolMsgType::RachPreamble, payload, target_gnb_id_);
@@ -188,7 +202,8 @@ void UeLogic::sendRachPreamble()
 
 void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
 {
-    if (state_ != UeRrcState::RRC_CONNECTING) {
+    if (state_ != UeRrcState::RRC_IDLE ||
+        cell_status_ != CellSearchStatus::CAMPED) {
         qDebug() << "UeLogic::handleRar   =>>  state_ != "
                     "UeRrcState::RRC_CONNECTING -> RETURN";
         return;
@@ -228,8 +243,6 @@ void UeLogic::handleRar(uint32_t gnb_id, const QByteArray& payload)
 
 void UeLogic::sendRrcSetupRequest(uint32_t gnb_id)
 {
-    state_ = UeRrcState::RRC_CONNECTING;
-
     /* InitialUE-Identity ::= CHOICE {
      *     ng-5G-S-TMSI-Part1          BIT STRING (SIZE (39)),
      *     randomValue                 BIT STRING (SIZE (39))
@@ -249,7 +262,7 @@ void UeLogic::sendRrcSetupRequest(uint32_t gnb_id)
 
 void UeLogic::handleRrcSetup(uint32_t gnb_id, const QByteArray& payload)
 {
-    if (state_ != UeRrcState::RRC_CONNECTING) {
+    if (state_ != UeRrcState::RRC_IDLE) {
         qWarning() << "[UE] Ignored RrcSetup: Invalid State"
                    << toString(state_);
         return;
@@ -333,6 +346,7 @@ void UeLogic::handleRrcRelease(uint32_t gnb_id, const QByteArray& payload)
     resetSessionContext();
 
     state_ = UeRrcState::RRC_IDLE;
+    cell_status_ = CellSearchStatus::CELL_SELECTION;
 
     FlowLogger::log(EntityType::GNB, id_, gnb_id, ProtocolMsgType::RrcRelease,
                     true);
@@ -380,8 +394,6 @@ void UeLogic::handleRegistrationAccept(const QByteArray& payload)
     if (info.status == RegistrationStatus::Accepted) {
         state_ = UeRrcState::RRC_CONNECTED;
         is_connected_ = true;
-
-        sendRrcSetupComplete(target_gnb_id_);
     } else if (info.status == RegistrationStatus::Rejected) {
         qWarning() << QString(
                           "[UE %1] NAS: Connection REJECTED by gNB #%2. "
@@ -447,7 +459,8 @@ void UeLogic::handleRrcReconfiguration(const QByteArray& payload)
                     .arg(target_gnb_id_)
                     .arg(target_gnb_id);
 
-    state_ = UeRrcState::RRC_CONNECTING;
+    state_ = UeRrcState::RRC_IDLE;
+    cell_status_ = CellSearchStatus::CELL_SELECTION;
 
     target_gnb_id_ = target_gnb_id;
 
