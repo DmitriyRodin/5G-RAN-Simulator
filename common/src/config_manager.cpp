@@ -118,6 +118,16 @@ SimulationSettings ConfigManager::parseSimulation(const YAML::Node& node)
         deploy_mode = DeployMode::Distributed;
     }
 
+    const uint8_t raw_serializer_type =
+        getRequired<uint8_t>(sim_node, "serializer_type");
+
+    SerializerType serializer_type;
+    if (raw_serializer_type == 0) {
+        serializer_type = SerializerType::QDataStream;
+    } else {
+        serializer_type = SerializerType::Protobuf;
+    }
+
     const uint32_t gnb_count = getRequired<uint32_t>(sim_node, "gnb_count");
     const uint32_t ue_count = getRequired<uint32_t>(sim_node, "ue_count");
 
@@ -126,8 +136,8 @@ SimulationSettings ConfigManager::parseSimulation(const YAML::Node& node)
     const uint32_t ue_id_start = getRequired<uint32_t>(sim_node, "ue_id_start");
 
     qDebug() << "[ConfigManager]: Simulation settings parsed successfully";
-    return SimulationSettings{deploy_mode, gnb_count, ue_count, gnb_id_start,
-                              ue_id_start};
+    return SimulationSettings{deploy_mode, serializer_type, gnb_count,
+                              ue_count,    gnb_id_start,    ue_id_start};
 }
 
 Positions ConfigManager::parsePositions(const YAML::Node& node)
@@ -325,4 +335,10 @@ std::optional<UeRuntimeContext> ConfigManager::getUeContext() const
     qCritical() << "[ConfigManager]: CRITICAL - No position found for UE ID:"
                 << node_id;
     return std::nullopt;
+}
+
+SerializerType ConfigManager::getSerializerType() const
+{
+    return pack_.has_value() ? pack_->sim.serializer_type
+                             : SerializerType::QDataStream;
 }

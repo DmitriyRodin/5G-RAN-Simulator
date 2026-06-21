@@ -4,13 +4,14 @@
 #include <QRandomGenerator>
 
 #include "gnb_logic.hpp"
+#include "serializer_factory.hpp"
 #include "ue_logic.hpp"
 
 SimulationController::SimulationController(SettingsPack pack, QObject* parent)
     : QObject(parent)
     , set_pack_(std::move(pack))
 {
-    hub_ = new RadioHub(set_pack_.hub, this);
+    hub_ = new RadioHub(set_pack_.hub, set_pack_.sim.serializer_type, this);
 }
 
 void SimulationController::startSimulation()
@@ -62,7 +63,10 @@ QVector<UeGuiSnapshot> SimulationController::getUeSnapshots() const
 void SimulationController::setupGnbStations()
 {
     for (const auto& [id, pos] : set_pack_.positions.gnbs) {
-        auto gnb = std::make_shared<GnbLogic>(id, set_pack_.gnb);
+        auto serializer =
+            SerializerFactory::create(set_pack_.sim.serializer_type);
+        auto gnb = std::make_shared<GnbLogic>(id, set_pack_.gnb,
+                                              std::move(serializer));
         gnb->setPosition({pos.X, pos.Y});
         gnb->setTxPower(set_pack_.gnb.radio.tx_power_db);
 
@@ -72,6 +76,7 @@ void SimulationController::setupGnbStations()
 
         if (gnb->setupNetwork(NetworkParam::EPHEMERAL_PORT)) {
             gnb->registerAtHub();
+
             gnb->run();
             gnbs_[gnb->getId()] = gnb;
         }
@@ -81,7 +86,10 @@ void SimulationController::setupGnbStations()
 void SimulationController::setupUeDevices()
 {
     for (const auto& [id, pos] : set_pack_.positions.ues) {
-        auto ue = std::make_shared<UeLogic>(id, set_pack_.ue);
+        auto serializer =
+            SerializerFactory::create(set_pack_.sim.serializer_type);
+        auto ue =
+            std::make_shared<UeLogic>(id, set_pack_.ue, std::move(serializer));
         ue->setPosition({pos.X, pos.Y});
         ue->setTxPower(23.0);
 

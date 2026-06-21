@@ -28,6 +28,7 @@ ue_settings:
 
 simulation:
   deploy_mode: 0  # 0 = Monolithic, 1 = Distributed
+  serializer_type: 1 # 0 - QDataStreamSerializer, 1 - ProtobufSerializer
   gnb_id_start: 1
   ue_id_start: 501
   gnb_count: 3

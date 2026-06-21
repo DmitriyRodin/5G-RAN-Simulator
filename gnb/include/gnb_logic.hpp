@@ -16,6 +16,7 @@ class GnbLogic : public BaseEntity
     Q_OBJECT
 public:
     GnbLogic(const uint32_t id, const GnbSettings set,
+             std::unique_ptr<ISerializer> serializer,
              QObject* parent = nullptr);
     void setCellConfig(const GnbCellConfig& config);
     void run() override;

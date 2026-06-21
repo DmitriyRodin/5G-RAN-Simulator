@@ -19,6 +19,7 @@ class BaseEntity : public QObject, public INetworkNode
     Q_OBJECT
 public:
     BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
+               std::unique_ptr<ISerializer> serializer,
                QObject* parent = nullptr);
     virtual ~BaseEntity();
 
@@ -26,7 +27,7 @@ public:
     virtual void run() = 0;
     bool setupNetwork(quint16 port);
     void registerAtHub();
-    void handleRegistrationResponse(QDataStream& ds);
+    void handleHubRegistrationResponse(const QByteArray& payload);
 
     uint32_t getId() const override;
     EntityType getType() const override;
@@ -57,7 +58,7 @@ protected:
     bool is_registered_;
 
     double tx_power_dbm_;
-    std::unique_ptr<ISerializer> serializer_;
+    std::unique_ptr<ISerializer> serializer_ = nullptr;
 
     virtual void onProtocolMessageReceived(uint32_t source_id,
                                            ProtocolMsgType type,

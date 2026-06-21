@@ -6,7 +6,10 @@
 #include <QDebug>
 #include <QLine>
 
-RadioHub::RadioHub(const HubSettings set, QObject* parent)
+#include "ran_messages.pb.h"
+
+RadioHub::RadioHub(const HubSettings set, const SerializerType serial_type,
+                   QObject* parent)
     : QObject(parent)
     , transport_(new UdpTransport(this))
     , port_(set.port)
@@ -14,6 +17,7 @@ RadioHub::RadioHub(const HubSettings set, QObject* parent)
     , broadcast_id_(set.broadcast_id)
     , position_(QPointF(set.virt_pos.X, set.virt_pos.Y))
     , address_(set.address)
+    , serializer_type_(serial_type)
 {
 }
 
@@ -122,9 +126,20 @@ void RadioHub::sendRegistrationResponse(uint32_t node_id, uint8_t status,
                                         const QHostAddress& ip, quint16 port)
 {
     QByteArray payload;
-    QDataStream ds(&payload, QIODevice::WriteOnly);
-    ds.setByteOrder(QDataStream::BigEndian);
-    ds << status;
+
+    if (serializer_type_ == SerializerType::Protobuf) {
+        ran::protocol::HubRegistrationResponse proto_resp;
+        proto_resp.set_status(status);
+
+        std::string serialized = proto_resp.SerializeAsString();
+        payload =
+            QByteArray(serialized.data(), static_cast<int>(serialized.size()));
+
+    } else {
+        QDataStream ds(&payload, QIODevice::WriteOnly);
+        ds.setByteOrder(QDataStream::BigEndian);
+        ds << status;
+    }
 
     QByteArray response = SimProtocol::buildPacket(
         hub_id_, EntityType::RadioHub, node_id,
@@ -139,9 +154,22 @@ void RadioHub::handleHubMessage(const SimProtocol::DecodedPacket& packet,
 {
     switch (packet.type) {
         case SimMessageType::Registration: {
+            double radius = 0.0;
+
+            if (serializer_type_ == SerializerType::Protobuf) {
+                ran::protocol::HubRegistrationPayload proto_payload;
+                if (proto_payload.ParseFromArray(packet.payload.constData(),
+                                                 packet.payload.size())) {
+                    radius = proto_payload.radius();
+                }
+            } else {
+                QDataStream ds(packet.payload);
+                ds.setByteOrder(QDataStream::BigEndian);
+                ds >> radius;
+            }
+
             handleRegistration(packet.srcId, sender_ip, sender_port,
-                               packet.nodeType, packet.position,
-                               SimProtocol::parseRadius(packet.payload));
+                               packet.nodeType, packet.position, radius);
             break;
         }
         case SimMessageType::Deregistration: {

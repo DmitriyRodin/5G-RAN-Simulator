@@ -24,6 +24,7 @@ public:
     HubSettings getHubSettings() const;
     std::optional<GnbRuntimeContext> getGnbContext() const;
     std::optional<UeRuntimeContext> getUeContext() const;
+    SerializerType getSerializerType() const;
 
     bool load(const std::string& filename);
     const SimulationSettings& getSimulationSettings() const;

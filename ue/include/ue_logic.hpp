@@ -18,6 +18,7 @@ class UeLogic : public BaseEntity
     Q_OBJECT
 public:
     explicit UeLogic(const uint32_t id, const UeSettings set,
+                     std::unique_ptr<ISerializer> serializer,
                      QObject* parent = nullptr);
     void run() override;
     void sendChatMessage(const ChatMessageInfo& info);

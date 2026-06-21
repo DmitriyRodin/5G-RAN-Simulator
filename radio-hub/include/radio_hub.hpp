@@ -20,7 +20,8 @@ class RadioHub : public QObject
     Q_OBJECT
 
 public:
-    explicit RadioHub(const HubSettings set, QObject* parent = nullptr);
+    explicit RadioHub(const HubSettings set, const SerializerType serial_type,
+                      QObject* parent = nullptr);
     bool run();
 
 private slots:
@@ -59,6 +60,7 @@ private:
     const uint32_t broadcast_id_;
     const QPointF position_;
     std::string address_;
+    const SerializerType serializer_type_;
 };
 
 #endif  // RADIOHUB_HPP

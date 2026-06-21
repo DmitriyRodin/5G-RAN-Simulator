@@ -13,7 +13,9 @@ add_library(common_lib STATIC
     include/config_manager.hpp
     include/network_node.hpp
     include/qdatastream_serializer.hpp
-    src/base_entity.cpp
+    include/serializer_type.hpp
+    include/serializer_factory.hpp
+    src/base_entity.cpp    
     src/settings.cpp
     src/sim_protocol.cpp
     src/types.cpp
@@ -21,6 +23,7 @@ add_library(common_lib STATIC
     src/flow_logger.cpp
     src/config_manager.cpp
     src/qdatastream_serializer.cpp
+    src/serializer_factory.cpp
 )
 
 target_include_directories(common_lib PUBLIC
@@ -40,6 +43,8 @@ target_link_libraries(common_lib PUBLIC
     Qt6::Network
     yaml-cpp
 )
+
+add_subdirectory(protobuf)
 
 if(BUILD_TESTS)
     add_subdirectory(tests)

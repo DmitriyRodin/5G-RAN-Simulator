@@ -71,6 +71,9 @@ public:
         const HandoverInfo info) const = 0;
     virtual std::optional<HandoverInfo> deserializeTriggerHandover(
         const QByteArray& payload) const = 0;
+
+    virtual std::optional<HubRegistrationResponce>
+    deserializeHubRegistrationResponce(const QByteArray& payload) const = 0;
 };
 
 #endif  // ISERIALIZER_HPP

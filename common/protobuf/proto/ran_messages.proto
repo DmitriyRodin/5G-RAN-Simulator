@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package ran.protocol;
+
+message PlmnIdentity {
+    uint32 mcc = 1;
+    uint32 mnc = 2;
+}
+
+message RrcSetupRequest {
+    uint64 ue_identity = 1;
+    uint32 cause = 2;
+}
+
+message RachPreambleInfo {
+    uint32 ra_rnti = 1;
+}
+
+message RarInfo {
+    uint32 ra_rnti = 1;
+    uint32 temp_c_rnti = 2;
+    uint32 timing_advance = 3;
+}
+
+message RrcSetupInfo {
+    uint64 received_identity = 1;
+    uint32 config_status = 2;
+}
+
+message RrcSetupCompleteInfo {
+    PlmnIdentity plmn = 1;
+}
+
+message RegistrationRequestInfo {
+    uint32 ue_id = 1;
+    string ue_cap = 2;
+}
+
+message RegistrationAnswerInfo {
+    uint32 status = 1;
+    optional string reject_reason = 2;
+}
+
+message MeasurementReportInfo {
+    uint32 reported_gnb_id = 1;
+    double rsrp = 2;
+}
+
+message RrcReconfigurationInfo {
+    uint32 target_gnb_id = 1;
+}
+
+message ChatMessageInfo {
+    uint32 receiver_ue_id = 1;
+    uint32 sender_ue_id = 2;
+    string text = 3;
+}
+
+message CellConfig {
+    uint32 tac = 1;
+    double min_rx_level = 2;
+    repeated PlmnIdentity plmns = 3;
+}
+
+message SIB1Info {
+    uint32 gnb_id = 1;
+    CellConfig cell_config = 2;
+}
+
+message HandoverInfo {
+    uint32 gnb_id = 1;
+}
+
+message HubRegistrationPayload {
+    double radius = 1;
+}
+
+message HubRegistrationResponse {
+    uint32 status = 1;
+}

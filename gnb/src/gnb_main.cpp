@@ -8,6 +8,7 @@
 
 #include "config_manager.hpp"
 #include "gnb_logic.hpp"
+#include "serializer_factory.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -25,8 +26,11 @@ int main(int argc, char* argv[])
     if (!context) {
         return EXIT_FAILURE;
     }
+    auto serializer_type = ConfigManager::instance().getSerializerType();
+    auto serializer = SerializerFactory::create(serializer_type);
 
-    auto gnb = std::make_unique<GnbLogic>(context->id, context->set);
+    auto gnb = std::make_unique<GnbLogic>(context->id, context->set,
+                                          std::move(serializer));
 
     gnb->setPosition(QPointF{context->pos.X, context->pos.Y});
 

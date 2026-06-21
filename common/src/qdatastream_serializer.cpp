@@ -2,6 +2,9 @@
 
 #include <QIODevice>
 
+#include "serializer_factory.hpp"
+#include "serializer_type.hpp"
+
 QByteArray QDataStreamSerializer::serializeRrcSetupRequest(
     const RrcSetupRequest& info) const
 {
@@ -349,10 +352,25 @@ std::optional<HandoverInfo> QDataStreamSerializer::deserializeTriggerHandover(
     HandoverInfo info;
     QDataStream ds(payload);
     ds.setByteOrder(QDataStream::BigEndian);
-
-    ChatMessageInfo message;
     ds >> info.gnb_id;
-
     return ds.status() == QDataStream::Ok ? std::optional<HandoverInfo>(info)
                                           : std::nullopt;
 }
+
+std::optional<HubRegistrationResponce>
+QDataStreamSerializer::deserializeHubRegistrationResponce(
+    const QByteArray& payload) const
+{
+    HubRegistrationResponce responce;
+    QDataStream ds(payload);
+    ds.setByteOrder(QDataStream::BigEndian);
+
+    ds >> responce.status;
+    return ds.status() == QDataStream::Ok
+               ? std::optional<HubRegistrationResponce>(responce)
+               : std::nullopt;
+}
+
+static bool qdatastream_registered = SerializerFactory::registerSerializer(
+    SerializerType::QDataStream,
+    []() { return std::make_unique<QDataStreamSerializer>(); });

@@ -1,19 +1,20 @@
-#ifndef QDATASTREAM_SERIALIZER_HPP
-#define QDATASTREAM_SERIALIZER_HPP
-
-#include <QDataStream>
+#ifndef PROTOBUF_SERIALIZER_HPP
+#define PROTOBUF_SERIALIZER_HPP
 
 #include "iserializer.hpp"
 #include "types.hpp"
 
-class QDataStreamSerializer : public ISerializer
+class ProtobufSerializer : public ISerializer
 {
 public:
+    ProtobufSerializer() = default;
+    ~ProtobufSerializer() override = default;
+
     QByteArray serializeRrcSetupRequest(
         const RrcSetupRequest& info) const override;
-
     std::optional<RrcSetupRequest> deserializeRrcSetupRequest(
         const QByteArray& payload) const override;
+
     QByteArray serializeRachPreamble(const uint16_t& ra_rnti) const override;
     std::optional<RachPreambleInfo> deserializeRachPreamble(
         const QByteArray& payload) const override;
@@ -28,11 +29,10 @@ public:
 
     QByteArray serializeRrcSetupComplete(
         const RrcSetupCompleteInfo& info) const override;
-
     std::optional<RrcSetupCompleteInfo> deserializeRrcSetupComplete(
         const QByteArray& payload) const override;
 
-    QByteArray serializeRrcRelease(const RrcReleaseCause& info) const override;
+    QByteArray serializeRrcRelease(const RrcReleaseCause& cause) const override;
     std::optional<RrcReleaseCause> deserializeRrcRelease(
         const QByteArray& payload) const override;
 
@@ -46,8 +46,15 @@ public:
     std::optional<RegistrationAnswerInfo> deserializeRegistrationAnswer(
         const QByteArray& payload) const override;
 
+    QByteArray serializeMeasurementReport(
+        const MeasurementReportInfo& info) const override;
+
+    std::optional<MeasurementReportInfo> deserializeMeasurementReport(
+        const QByteArray& payload) const override;
+
     std::optional<RrcReconfigurationInfo> deserializeRrcReconfiguration(
         const QByteArray& payload) const override;
+
     QByteArray serializeChatMessage(
         const ChatMessageInfo& message) const override;
     std::optional<ChatMessageInfo> deserializeChatMessage(
@@ -55,11 +62,6 @@ public:
 
     QByteArray serializeSB1Info(const SIB1Info& sib1) const override;
     std::optional<SIB1Info> deserializeSB1Info(
-        const QByteArray& payload) const override;
-
-    QByteArray serializeMeasurementReport(
-        const MeasurementReportInfo& info) const override;
-    std::optional<MeasurementReportInfo> deserializeMeasurementReport(
         const QByteArray& payload) const override;
 
     QByteArray serializeRegistrationPayload(const double radius) const override;
@@ -72,4 +74,4 @@ public:
         const QByteArray& payload) const override;
 };
 
-#endif  // QDATASTREAM_SERIALIZER_HPP
+#endif  // PROTOBUF_SERIALIZER_HPP
