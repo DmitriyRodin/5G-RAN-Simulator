@@ -4,18 +4,19 @@
 #include <QNetworkDatagram>
 
 #include "base_entity.hpp"
-#include "qdatastream_serializer.hpp"
 #include "sim_protocol.hpp"
 
 BaseEntity::BaseEntity(uint32_t id, const EntityType& type, HubSettings hub_set,
-                       QObject* parent)
+                       std::unique_ptr<ISerializer> serializer, QObject* parent)
     : QObject(parent)
     , id_(id)
     , type_(type)
     , hub_set_(hub_set)
     , is_registered_(false)
-    , serializer_(std::make_unique<QDataStreamSerializer>())
+    , serializer_(std::move(serializer))
 {
+    Q_ASSERT_X(serializer_ != nullptr, "BaseEntity constructor",
+               "Serializer is null!");
 }
 
 BaseEntity::~BaseEntity()
@@ -98,12 +99,20 @@ QByteArray BaseEntity::getRegistrationPayload() const
     return QByteArray();
 }
 
-void BaseEntity::handleRegistrationResponse(QDataStream& ds)
+void BaseEntity::handleHubRegistrationResponse(const QByteArray& payload)
 {
-    uint8_t status;
-    ds >> status;
+    const auto responce =
+        serializer_->deserializeHubRegistrationResponce(payload);
 
-    if (status == 1) {
+    if (!responce.has_value()) {
+        qWarning()
+            << "[" << typeToString(type_) << "#" << id_
+            << "] HubRegistrationResponce parsing failed (corrupted packet). "
+               "Dropping.";
+        return;
+    }
+
+    if (responce.value().status == 1) {
         is_registered_ = true;
         qDebug()
             << QString("[Entity %1] Registration SUCCESS at RadioHub").arg(id_);
@@ -160,9 +169,7 @@ void BaseEntity::handleIncomingRawData(const QByteArray& data,
 
     switch (decoded.type) {
         case SimMessageType::RegistrationResponse: {
-            QDataStream ds(decoded.payload);
-            ds.setByteOrder(QDataStream::BigEndian);
-            handleRegistrationResponse(ds);
+            handleHubRegistrationResponse(decoded.payload);
             break;
         }
 

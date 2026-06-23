@@ -5,8 +5,9 @@
 
 #include "flow_logger.hpp"
 
-GnbLogic::GnbLogic(const uint32_t id, const GnbSettings set, QObject* parent)
-    : BaseEntity(id, EntityType::GNB, set.hub, parent)
+GnbLogic::GnbLogic(const uint32_t id, const GnbSettings set,
+                   std::unique_ptr<ISerializer> serializer, QObject* parent)
+    : BaseEntity(id, EntityType::GNB, set.hub, std::move(serializer), parent)
     , radius_(set.radius)
 {
     main_timer_ = new QTimer(this);

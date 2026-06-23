@@ -37,6 +37,10 @@ endif()
 target_link_libraries(5G-RAN-Simulator PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     controller_lib
+    -Wl,--whole-archive
+    common_lib
+    common_proto_lib
+    -Wl,--no-whole-archive
 )
 
 target_include_directories(5G-RAN-Simulator PRIVATE

@@ -19,7 +19,9 @@ int main(int argc, char* argv[])
 
     const auto set = ConfigManager::instance().getHubSettings();
 
-    auto radio_hub = std::make_unique<RadioHub>(set);
+    const auto serial_type = ConfigManager::instance().getSerializerType();
+
+    auto radio_hub = std::make_unique<RadioHub>(set, serial_type);
 
     return a.exec();
 }

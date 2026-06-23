@@ -4,6 +4,7 @@
 #include <QHostAddress>
 
 #include "config_manager.hpp"
+#include "serializer_factory.hpp"
 #include "ue_logic.hpp"
 
 int main(int argc, char* argv[])
@@ -23,7 +24,11 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    auto ue = std::make_unique<UeLogic>(context->id, context->set);
+    auto serializer_type = ConfigManager::instance().getSerializerType();
+    auto serializer = SerializerFactory::create(serializer_type);
+
+    auto ue = std::make_unique<UeLogic>(context->id, context->set,
+                                        std::move(serializer));
 
     ue->setPosition(QPointF{context->pos.X, context->pos.Y});
 

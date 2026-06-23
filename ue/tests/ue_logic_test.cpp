@@ -7,7 +7,8 @@ class UeLogicTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        ue = new UeLogicTestWrapper(TestData::UE_ID, TestData::UE_SETTINGS);
+        ue = new UeLogicTestWrapper(TestData::UE_ID, TestData::UE_SETTINGS,
+                                    std::make_unique<QDataStreamSerializer>());
         serializer_ = std::make_unique<QDataStreamSerializer>();
     }
 

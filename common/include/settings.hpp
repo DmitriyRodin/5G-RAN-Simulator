@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "serializer_type.hpp"
+
 struct Point2D {
     double X;
     double Y;
@@ -102,6 +104,7 @@ enum class DeployMode : uint8_t {
 
 struct SimulationSettings {
     DeployMode deploy_mode = DeployMode::Distributed;
+    SerializerType serializer_type = SerializerType::QDataStream;
 
     uint32_t gnb_count;
     uint32_t ue_count;

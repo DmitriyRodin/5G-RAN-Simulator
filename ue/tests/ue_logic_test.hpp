@@ -28,8 +28,9 @@ const UeSettings UE_SETTINGS(HUB_SET, RADIO, CELL);
 class UeLogicTestWrapper : public UeLogic
 {
 public:
-    UeLogicTestWrapper(uint32_t id, UeSettings set)
-        : UeLogic(id, set)
+    UeLogicTestWrapper(uint32_t id, UeSettings set,
+                       std::unique_ptr<ISerializer> serializer)
+        : UeLogic(id, set, std::move(serializer))
     {
     }
     using UeLogic::onProtocolMessageReceived;

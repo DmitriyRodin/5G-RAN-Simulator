@@ -7,8 +7,9 @@ class GnbLogicTest : public Test
 protected:
     void SetUp() override
     {
-        gnb = new StrictMock<MockGnbLogic>(TestData::GNB_ID,
-                                           TestData::GNB_SETTINGS);
+        gnb = new StrictMock<MockGnbLogic>(
+            TestData::GNB_ID, TestData::GNB_SETTINGS,
+            std::make_unique<QDataStreamSerializer>());
 
         serializer_ = std::make_unique<QDataStreamSerializer>();
         config.tac = 123;

@@ -126,6 +126,10 @@ QString toString(RegistrationStatus reg_status);
 using rnti_t = uint16_t;
 using ta_index_t = uint16_t;
 
+struct HubRegistrationResponce {
+    uint8_t status;
+};
+
 struct RarInfo {
     rnti_t ra_rnti;
     rnti_t temp_c_rnti;

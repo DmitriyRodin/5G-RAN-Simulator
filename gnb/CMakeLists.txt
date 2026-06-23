@@ -22,6 +22,7 @@ target_link_libraries(gnb_lib PUBLIC
     Qt6::Core
     Qt6::Network
     common_lib
+    common_proto_lib
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gnb_main.cpp")

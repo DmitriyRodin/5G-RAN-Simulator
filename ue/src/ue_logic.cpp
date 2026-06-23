@@ -9,8 +9,9 @@
 
 #include "flow_logger.hpp"
 
-UeLogic::UeLogic(const uint32_t id, const UeSettings set, QObject* parent)
-    : BaseEntity(id, EntityType::UE, set.hub, parent)
+UeLogic::UeLogic(const uint32_t id, const UeSettings set,
+                 std::unique_ptr<ISerializer> serializer, QObject* parent)
+    : BaseEntity(id, EntityType::UE, set.hub, std::move(serializer), parent)
     , state_(UeRrcState::RRC_IDLE)
     , cell_status_(CellSearchStatus::SYNCHRONIZING)
     , is_rf_receiver_locked_(false)

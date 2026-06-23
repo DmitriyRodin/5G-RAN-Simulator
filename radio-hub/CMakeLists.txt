@@ -21,6 +21,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 target_link_libraries(radiohub_lib PUBLIC
     Qt6::Core
     Qt6::Network
+    common_proto_lib
     common_lib
 )
 

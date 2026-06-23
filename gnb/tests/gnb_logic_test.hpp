@@ -75,8 +75,9 @@ MATCHER_P2(HasRegistrationResponse, expected_status, expected_reasone, "")
 class MockGnbLogic : public GnbLogic
 {
 public:
-    MockGnbLogic(uint32_t id, GnbSettings set)
-        : GnbLogic(id, set)
+    MockGnbLogic(uint32_t id, GnbSettings set,
+                 std::unique_ptr<ISerializer> serializer)
+        : GnbLogic(id, set, std::move(serializer))
     {
     }
 
@@ -85,7 +86,6 @@ public:
                  uint32_t receiver_id),
                 (override));
 
-    using BaseEntity::serializer_;
     using GnbLogic::cellConfig_;
     using GnbLogic::handleRegistrationRequest;
     using GnbLogic::onProtocolMessageReceived;
