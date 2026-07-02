@@ -20,7 +20,7 @@ GnbLogic::GnbLogic(const uint32_t id, const GnbSettings set,
 
 void GnbLogic::setCellConfig(const GnbCellConfig& config)
 {
-    cellConfig_ = config;
+    cell_config_ = config;
 }
 
 void GnbLogic::run()
@@ -117,8 +117,8 @@ void GnbLogic::onProtocolMessageReceived(uint32_t ue_id, ProtocolMsgType type,
 
 void GnbLogic::sendBroadcastInfo()
 {
-    const QByteArray broadcast_info =
-        serializer_->serializeSB1Info({id_, cellConfig_});
+    const QByteArray broadcast_info = serializer_->serializeSB1Info(
+        sys_info_service_.buildSib1(cell_config_, id_));
 
     sendSimData(ProtocolMsgType::Sib1, broadcast_info, hub_set_.broadcast_id);
     FlowLogger::log(type_, id_, hub_set_.broadcast_id, ProtocolMsgType::Sib1,

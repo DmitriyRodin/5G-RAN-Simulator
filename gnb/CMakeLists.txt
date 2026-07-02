@@ -5,7 +5,9 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(gnb_lib STATIC
     include/gnb_logic.hpp
+    include/sys_info_service.hpp
     src/gnb_logic.cpp
+    src/sys_info_service.cpp
 )
 
 target_include_directories(gnb_lib PUBLIC

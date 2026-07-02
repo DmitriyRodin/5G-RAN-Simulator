@@ -96,6 +96,9 @@ private:
     std::chrono::steady_clock::time_point last_report_time_;
     const std::chrono::milliseconds report_interval_{500};
 
+    RachConfigCommon active_rach_config_;
+    SiSchedulingInfo active_si_scheduling_;
+
     QList<uint32_t> peers_;
 
 #ifdef UNIT_TESTS
