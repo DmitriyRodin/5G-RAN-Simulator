@@ -56,15 +56,33 @@ message ChatMessageInfo {
     string text = 3;
 }
 
-message CellConfig {
-    uint32 tac = 1;
-    double min_rx_level = 2;
-    repeated PlmnIdentity plmns = 3;
+message RachConfigCommon {
+    uint32 total_number_of_RA_preambles = 1;
+    uint32 preamble_trans_max = 2;
+    uint32 ra_response_window_ms = 3;
+}
+
+message SibMapping {
+    uint32 sib_type = 1;
+    uint32 periodicity_ms = 2;
+}
+
+message SiSchedulingInfo {
+    uint32 si_window_length_ms = 1;
+    uint32 system_info_value_tag = 2;
+    repeated SibMapping scheduled_sibs = 3;
 }
 
 message SIB1Info {
-    uint32 gnb_id = 1;
-    CellConfig cell_config = 2;
+    uint32 cell_identity = 1;
+    uint32 tac = 2;
+    int32 qRx_lev_min = 3;
+    bool cell_barred = 4;
+    bool reserved_for_operator_use = 5;
+    bool intra_freq_reselection = 6;
+    RachConfigCommon rach_config = 7;
+    SiSchedulingInfo si_scheduling = 8;
+    repeated PlmnIdentity plmn_identity_info_list = 9;
 }
 
 message HandoverInfo {

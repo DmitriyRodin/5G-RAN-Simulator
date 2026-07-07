@@ -5,6 +5,7 @@
 
 #include "base_entity.hpp"
 #include "settings.hpp"
+#include "sys_info_service.hpp"
 #include "types.hpp"
 
 #ifdef UNIT_TESTS
@@ -58,7 +59,8 @@ private:
 
 protected:
     QMap<uint32_t, UeContext> ue_contexts_;
-    GnbCellConfig cellConfig_;
+    GnbCellConfig cell_config_;
+    SysInfoService sys_info_service_;
 
 #ifdef UNIT_TESTS
     friend class GnbLogicTestWrapper;

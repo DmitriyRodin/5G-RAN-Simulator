@@ -288,11 +288,18 @@ QByteArray QDataStreamSerializer::serializeSB1Info(const SIB1Info& sib1) const
     QDataStream ds(&payload, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::BigEndian);
 
-    ds << sib1.gnb_id;
-    ds << sib1.cell_config.tac;
-    ds << sib1.cell_config.minRxLevel;
-    ds << sib1.cell_config.plmns_size;
-    for (const auto [mcc, mnc] : sib1.cell_config.plmns) {
+    ds << sib1.cell_identity;
+    ds << sib1.tac;
+    ds << sib1.qRx_lev_min;
+    ds << sib1.cell_barred;
+    ds << sib1.reserved_for_operator_use;
+    ds << sib1.intra_freq_reselection;
+    ds << sib1.rach_config;
+    ds << sib1.si_scheduling;
+
+    ds << static_cast<uint8_t>(sib1.plmn_identity_info_list.size());
+
+    for (const auto [mcc, mnc] : sib1.plmn_identity_info_list) {
         ds << mcc;
         ds << mnc;
     }
@@ -307,17 +314,23 @@ std::optional<SIB1Info> QDataStreamSerializer::deserializeSB1Info(
     ds.setByteOrder(QDataStream::BigEndian);
 
     SIB1Info sib1;
-    const uint8_t plmns_size{};
-    ds >> sib1.gnb_id >> sib1.cell_config.tac >> sib1.cell_config.minRxLevel >>
-        sib1.cell_config.plmns_size;
+    uint8_t plmns_size{};
+    ds >> sib1.cell_identity >> sib1.tac >> sib1.qRx_lev_min >>
+        sib1.cell_barred >> sib1.reserved_for_operator_use >>
+        sib1.intra_freq_reselection >> sib1.rach_config >> sib1.si_scheduling >>
+        plmns_size;
 
-    sib1.cell_config.plmns.reserve(sib1.cell_config.plmns_size);
-    for (size_t i = 0; i < sib1.cell_config.plmns_size; ++i) {
+    if (plmns_size == 0) {
+        return std::nullopt;
+    }
+
+    sib1.plmn_identity_info_list.reserve(plmns_size);
+    for (size_t i = 0; i < plmns_size; ++i) {
         uint32_t mcc;
         uint32_t mnc;
         ds >> mcc >> mnc;
         qDebug() << "mcc: " << mcc << ", mnc: " << mnc;
-        sib1.cell_config.plmns.push_back({mcc, mnc});
+        sib1.plmn_identity_info_list.push_back({mcc, mnc});
     }
 
     return ds.status() == QDataStream::Ok ? std::optional<SIB1Info>(sib1)

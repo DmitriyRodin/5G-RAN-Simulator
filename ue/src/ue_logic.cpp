@@ -53,7 +53,7 @@ void UeLogic::resetSessionContext()
 
 bool UeLogic::checkPlmnValidity(const SIB1Info& sib1)
 {
-    for (const auto& plmn_identity : sib1.cell_config.plmns) {
+    for (const auto& plmn_identity : sib1.plmn_identity_info_list) {
         if (plmn_identity == plmn_) {
             return true;
         }
@@ -160,6 +160,34 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
 
     qDebug() << "[UE #" << id_ << "] Found Cell! gNB #" << gnb_id;
     // Maybe: CHECK signal level (RSRP)
+
+    uint32_t extracted_gnb_id =
+        static_cast<uint32_t>(sib1_info.cell_identity >> 8);
+    uint8_t local_cell_id =
+        static_cast<uint8_t>(sib1_info.cell_identity & 0xFF);
+
+    qDebug().noquote()
+        << QString(
+               "[UE #%1] SIB1 received. Global NCI: 0x%2 (gNB-ID: %3, Sector: "
+               "%4)")
+               .arg(id_)
+               .arg(QString::number(sib1_info.cell_identity, 16).toUpper())
+               .arg(extracted_gnb_id)
+               .arg(local_cell_id);
+
+    if (sib1_info.cell_barred) {
+        qWarning() << "[UE #" << id_
+                   << "] Cannot camp: Cell is BARRED by network operator.";
+        return;
+    }
+
+    if (sib1_info.reserved_for_operator_use) {
+        qWarning() << "[UE #" << id_
+                   << "] Cannot camp: Cell is RESERVED for operator "
+                      "private/internal use.";
+        return;
+    }
+
     if (!checkPlmnValidity(sib1_info)) {
         qDebug() << QString(
                         "[UE %1] This GNB %2 doesn support our mobile operator")
@@ -170,13 +198,16 @@ void UeLogic::handleSib1(uint32_t gnb_id, const QByteArray& payload)
                         .arg(plmn_.mcc)
                         .arg(plmn_.mnc);
         qDebug() << QString("[gNB %1] PlmnIdentity:").arg(gnb_id);
-        for (const auto& [mcc, mnc] : sib1_info.cell_config.plmns) {
-            qDebug() << QString("plms: mcc: %1, mnc^ %2").arg(mcc).arg(mnc);
+        for (const auto& [mcc, mnc] : sib1_info.plmn_identity_info_list) {
+            qDebug() << QString("plms: mcc: %1, mnc: %2").arg(mcc).arg(mnc);
         }
         return;
     }
 
     target_gnb_id_ = gnb_id;
+
+    active_rach_config_ = sib1_info.rach_config;
+    active_si_scheduling_ = sib1_info.si_scheduling;
 
     cell_status_ = CellSearchStatus::CAMPED;
     state_ = UeRrcState::RRC_IDLE;

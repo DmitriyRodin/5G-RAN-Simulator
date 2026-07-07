@@ -86,7 +86,7 @@ public:
                  uint32_t receiver_id),
                 (override));
 
-    using GnbLogic::cellConfig_;
+    using GnbLogic::cell_config_;
     using GnbLogic::handleRegistrationRequest;
     using GnbLogic::onProtocolMessageReceived;
     using GnbLogic::onTick;

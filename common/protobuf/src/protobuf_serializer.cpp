@@ -250,14 +250,33 @@ std::optional<ChatMessageInfo> ProtobufSerializer::deserializeChatMessage(
 QByteArray ProtobufSerializer::serializeSB1Info(const SIB1Info& sib1) const
 {
     ran::protocol::SIB1Info proto_msg;
-    proto_msg.set_gnb_id(sib1.gnb_id);
+    proto_msg.set_cell_identity(sib1.cell_identity);
 
-    auto* config = proto_msg.mutable_cell_config();
-    config->set_tac(sib1.cell_config.tac);
-    config->set_min_rx_level(sib1.cell_config.minRxLevel);
+    proto_msg.set_tac(sib1.tac);
+    proto_msg.set_qrx_lev_min(sib1.qRx_lev_min);
+    proto_msg.set_cell_barred(sib1.cell_barred);
+    proto_msg.set_reserved_for_operator_use(sib1.reserved_for_operator_use);
+    proto_msg.set_intra_freq_reselection(sib1.intra_freq_reselection);
 
-    for (const auto& [mcc, mnc] : sib1.cell_config.plmns) {
-        auto* item = config->add_plmns();
+    auto* proto_rach = proto_msg.mutable_rach_config();
+    proto_rach->set_total_number_of_ra_preambles(
+        sib1.rach_config.total_number_of_RA_preambles);
+    proto_rach->set_preamble_trans_max(sib1.rach_config.preamble_trans_max);
+
+    auto* proto_si_shedu = proto_msg.mutable_si_scheduling();
+    proto_si_shedu->set_si_window_length_ms(
+        sib1.si_scheduling.si_window_length_ms);
+    proto_si_shedu->set_system_info_value_tag(
+        sib1.si_scheduling.system_info_value_tag);
+
+    for (const auto& sib_map : sib1.si_scheduling.scheduled_sibs) {
+        auto* proto_sib_map = proto_si_shedu->add_scheduled_sibs();
+        proto_sib_map->set_sib_type(static_cast<uint32_t>(sib_map.sib_type));
+        proto_sib_map->set_periodicity_ms(sib_map.periodicity_ms);
+    }
+
+    for (const auto& [mcc, mnc] : sib1.plmn_identity_info_list) {
+        auto* item = proto_msg.add_plmn_identity_info_list();
         item->set_mcc(mcc);
         item->set_mnc(mnc);
     }
@@ -273,17 +292,55 @@ std::optional<SIB1Info> ProtobufSerializer::deserializeSB1Info(
     }
 
     SIB1Info sib1;
-    sib1.gnb_id = proto_msg.gnb_id();
-    sib1.cell_config.tac = proto_msg.cell_config().tac();
-    sib1.cell_config.minRxLevel = proto_msg.cell_config().min_rx_level();
+    sib1.cell_identity = proto_msg.cell_identity();
+    sib1.tac = proto_msg.tac();
+    sib1.qRx_lev_min = proto_msg.qrx_lev_min();
+    sib1.cell_barred = proto_msg.cell_barred();
+    sib1.reserved_for_operator_use = proto_msg.reserved_for_operator_use();
+    sib1.intra_freq_reselection = proto_msg.intra_freq_reselection();
 
-    sib1.cell_config.plmns_size = proto_msg.cell_config().plmns_size();
-    sib1.cell_config.plmns.reserve(sib1.cell_config.plmns_size);
-
-    for (int i = 0; i < proto_msg.cell_config().plmns_size(); ++i) {
-        const auto& item = proto_msg.cell_config().plmns(i);
-        sib1.cell_config.plmns.push_back({item.mcc(), item.mnc()});
+    if (proto_msg.has_rach_config()) {
+        const auto& proto_rach = proto_msg.rach_config();
+        sib1.rach_config.total_number_of_RA_preambles =
+            static_cast<uint8_t>(proto_rach.total_number_of_ra_preambles());
+        sib1.rach_config.preamble_trans_max =
+            static_cast<uint8_t>(proto_rach.preamble_trans_max());
+        sib1.rach_config.ra_response_window_ms =
+            static_cast<uint16_t>(proto_rach.ra_response_window_ms());
     }
+
+    if (proto_msg.has_si_scheduling()) {
+        const auto& proto_si = proto_msg.si_scheduling();
+        sib1.si_scheduling.si_window_length_ms =
+            static_cast<uint8_t>(proto_si.si_window_length_ms());
+        sib1.si_scheduling.system_info_value_tag =
+            static_cast<uint8_t>(proto_si.system_info_value_tag());
+
+        sib1.si_scheduling.scheduled_sibs.reserve(
+            proto_si.scheduled_sibs_size());
+        for (int i = 0; i < proto_si.scheduled_sibs_size(); ++i) {
+            const auto& proto_sib_map = proto_si.scheduled_sibs(i);
+
+            SibMapping sib_map;
+            sib_map.sib_type = static_cast<SibType>(proto_sib_map.sib_type());
+            sib_map.periodicity_ms = proto_sib_map.periodicity_ms();
+
+            sib1.si_scheduling.scheduled_sibs.push_back(std::move(sib_map));
+        }
+    }
+
+    sib1.plmn_identity_info_list.reserve(
+        proto_msg.plmn_identity_info_list_size());
+    for (int i = 0; i < proto_msg.plmn_identity_info_list_size(); ++i) {
+        const auto& proto_plmn = proto_msg.plmn_identity_info_list(i);
+
+        PlmnIdentity domain_plmn;
+        domain_plmn.mcc = proto_plmn.mcc();
+        domain_plmn.mnc = proto_plmn.mnc();
+
+        sib1.plmn_identity_info_list.push_back(std::move(domain_plmn));
+    }
+
     return sib1;
 }
 

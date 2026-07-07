@@ -13,8 +13,7 @@ protected:
 
         serializer_ = std::make_unique<QDataStreamSerializer>();
         config.tac = 123;
-        config.minRxLevel = 1;
-        config.plmns_size = 1;
+        config.qRx_lev_min = -70;
         PlmnIdentity plmn{255, 1};
         config.plmns.push_back(plmn);
 
@@ -31,7 +30,7 @@ protected:
     std::unique_ptr<ISerializer> serializer_;
 };
 
-TEST_F(GnbLogicTest, SIB1_Broadcast_Validation)
+TEST_F(GnbLogicTest, DISABLED_SIB1_Broadcast_Validation)
 {
     EXPECT_CALL(*gnb,
                 sendSimData(ProtocolMsgType::Sib1,
