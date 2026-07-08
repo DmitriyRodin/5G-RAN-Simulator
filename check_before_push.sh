@@ -53,6 +53,12 @@ else
     ANY_FAILURE=1
 fi
 
+echo ""
+echo "---------------------------------------"
+echo "It's time for Python Integration tests:"
+python3 -m pytest tests/integration/test_gnb.py -v
+if [ $? -ne 0 ]; then ANY_FAILURE=1; fi
+
 echo "---------------------------------------"
 
 if [ $ANY_FAILURE -ne 0 ]; then
