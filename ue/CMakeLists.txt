@@ -27,7 +27,13 @@ target_link_libraries(ue_lib PUBLIC
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ue_main.cpp")
     add_executable(ue_app src/ue_main.cpp)
-    target_link_libraries(ue_app PRIVATE ue_lib)
+    target_link_libraries(ue_app PRIVATE
+        ue_lib
+        -Wl,--whole-archive
+        common_lib
+        common_proto_lib
+        -Wl,--no-whole-archive
+    )
 endif()
 
 if(BUILD_TESTS)

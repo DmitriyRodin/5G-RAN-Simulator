@@ -29,7 +29,13 @@ target_link_libraries(gnb_lib PUBLIC
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gnb_main.cpp")
     add_executable(gnb_app src/gnb_main.cpp)
-    target_link_libraries(gnb_app PRIVATE gnb_lib)
+    target_link_libraries(gnb_app PRIVATE
+        gnb_lib
+        -Wl,--whole-archive
+        common_lib
+        common_proto_lib
+        -Wl,--no-whole-archive
+    )
 endif()
 
 if(BUILD_TESTS)
