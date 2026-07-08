@@ -67,3 +67,12 @@ jobs:
         run: |
           cd build
           ctest --output-on-failure
+
+      - name: Install Python Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest pyyaml protobuf
+
+      - name: Run Python Integration Tests
+        run: |
+          PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python python3 -m pytest tests/integration/test_gnb.py -v

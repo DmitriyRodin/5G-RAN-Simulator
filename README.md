@@ -42,4 +42,10 @@ The simulator now supports two types os serializer (include Protobuf), configure
 
 Use case: Designed for realistic telecom network emulation, scalability testing, and simulating real-world distributed environments.
 
-STATUS: in progress
+## Testing
+
+1. Unit tests: bash ./check_before_push.sh
+2. Integration test: python3 -m pytest tests/integration/test_gnb.py -v
+
+## Status
+   in progress

@@ -1,0 +1,44 @@
+hub_settings:
+  id: 0
+  port: 6000
+  broadcast_id: 4294967295
+  virtual_position: [0, 0]
+  address: "127.0.0.1"
+
+paths:
+  build_dir: "../../build_test"
+
+gnb_settings:
+  radius: 1200
+  node_settings:
+    cell:
+      tracking_area_code: 100
+    radio:
+      radio_frame_duration: 10
+      tx_power_db: 43.0
+
+ue_settings:
+  node_settings:
+    cell:
+      tracking_area_code: 100
+    radio:
+      radio_frame_duration: 10
+      tx_power_db: 5.0
+
+simulation:
+  deploy_mode: 1  # Distributed Mode for integration testing
+  serializer_type: 0 # 0 - QDataStream, 1 - Protobuf
+  gnb_id_start: 101
+  ue_id_start: 501
+  gnb_count: 1
+  ue_count: 2
+
+positions:
+  gnb_positions_list:
+    - id: 101
+      pos: [ 0, 0 ]
+  ue_positions_list:
+    - id: 501
+      pos: [ 100, 100 ]
+    - id: 502
+      pos: [ 200, 200 ]
